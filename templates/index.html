@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <title>WebSocket Example</title>
     <script>
-        var socket = new WebSocket("ws://{{.}}/ws");
+      var socket = new WebSocket("ws://{{.}}/ws");
 
-        socket.onmessage = function (event) {
-            var data = JSON.parse(event.data);
-            var formattedData = JSON.stringify(data, null, 2);
-            document.getElementById("data").innerHTML = "<pre>" + formattedData + "</pre>";
-        };
+      socket.onmessage = function (event) {
+        var data = JSON.parse(event.data);
+        var formattedData = JSON.stringify(data, null, 2);
+        document.getElementById("data").innerHTML =
+          "<pre>" + formattedData + "</pre>";
+      };
     </script>
-</head>
+  </head>
 
-<body>
+  <body>
     <h1>WebSocket Example</h1>
     <div id="data"></div>
-</body>
-
+  </body>
 </html>
