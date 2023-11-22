@@ -1,48 +1,33 @@
-<div class="max-w-2xl mx-auto p-8 rounded shadow-lg mt-16">
+<div class="bg-gray-900">
+    <div class="mx-auto max-w-7xl">
+      <div class="grid grid-cols-1 gap-px bg-white/5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+          <p class="text-sm font-medium leading-6 text-gray-400">Block Number</p>
+          <p class="mt-2 flex items-baseline gap-x-2">
+            <span class="text-4xl font-semibold tracking-tight text-white">{{.Context.BlockNumber}}</span>
+          </p>
+        </div>
+        <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+          <p class="text-sm font-medium leading-6 text-gray-400">Slot Number</p>
+          <p class="mt-2 flex items-baseline gap-x-2">
+            <span class="text-4xl font-semibold tracking-tight text-white">{{.Context.SlotNumber}}</span>
+          </p>
+        </div>
+        <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+          <p class="text-sm font-medium leading-6 text-gray-400">Block Size</p>
+          <p class="mt-2 flex items-baseline gap-x-2">
+            <span class="text-4xl font-semibold tracking-tight text-white">{{.Payload.BlockBodySize}}</span>
+            <span class="text-sm text-gray-400">bytes</span>
+          </p>
+        </div>
+        <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+          <p class="text-sm font-medium leading-6 text-gray-400">Transaction Count</p>
+          <p class="mt-2 flex items-baseline gap-x-2">
+            <span class="text-4xl font-semibold tracking-tight text-white">{{.Payload.TransactionCount}}</span>
+          </p>
+        </div>
 
-    <h1 class="text-3xl font-semibold text-gray-800">{{.Type}}</h1>
-    <p class="text-gray-600 mt-2">Timestamp: {{.Timestamp}}</p>
-
-    <div class="mt-4">
-        <h2 class="text-xl font-semibold text-gray-700">Context</h2>
-        <table class="w-full mt-2">
-            <thead>
-                <tr>
-                    <th class="py-2 px-4">BlockNumber</th>
-                    <th class="py-2 px-4">SlotNumber</th>
-                    <th class="py-2 px-4">NetworkMagic</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="py-2 px-4">{{.Context.BlockNumber}}</td>
-                    <td class="py-2 px-4">{{.Context.SlotNumber}}</td>
-                    <td class="py-2 px-4">{{.Context.NetworkMagic}}</td>
-                </tr>
-            </tbody>
-        </table>
+      </div>
     </div>
-
-    <div class="mt-4">
-        <h2 class="text-xl font-semibold">Payload</h2>
-        <table class="w-full mt-2">
-            <thead>
-                <tr>
-                    <th class="py-2 px-4">BlockBodySize</th>
-                    <th class="py-2 px-4">IssuerVkey</th>
-                    <th class="py-2 px-4">BlockHash</th>
-                    <th class="py-2 px-4">TransactionCount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="py-2 px-4">{{.Payload.BlockBodySize}}</td>
-                    <td class="py-2 px-4">{{.Payload.IssuerVkey}}</td>
-                    <td class="py-2 px-4">{{.Payload.BlockHash}}</td>
-                    <td class="py-2 px-4">{{.Payload.TransactionCount}}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-</div>
+  </div>
+  

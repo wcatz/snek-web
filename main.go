@@ -45,12 +45,28 @@ func renderIndex(w http.ResponseWriter, templateName string, data interface{}) {
 	}
 }
 
+func renderWebhookData(w http.ResponseWriter, templateName string, data interface{}) {
+	err := templates.ExecuteTemplate(w, templateName, data)
+	if err != nil {
+		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+		return
+	}
+}
+
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	// Serve the index.html file with the latest event data
 	renderIndex(w, "index.html", latestEventData)
+}
+
+func WebhookDataHandler(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Serve the webhook_data.html file with the latest event data
+	renderWebhookData(w, "webhook_data.html", latestEventData)
 }
 
 func handleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -106,11 +122,12 @@ func main() {
 	mainRouter := mux.NewRouter()
 	mainRouter.HandleFunc("/", HomeHandler).Methods("GET") // Handle root URL
 	mainRouter.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+	mainRouter.HandleFunc("/webhook_data", WebhookDataHandler).Methods("GET") // New endpoint for webhook_data
 
 	// Start the main HTTP server on port 8080
 	mainPort := 8080
-	mainAddr := fmt.Sprintf(":%d", mainPort)
-	fmt.Printf("HTML server running on port %d...\n", mainPort)
+	mainAddr := fmt.Sprintf(":%v", mainPort)
+	fmt.Printf("HTML server running on port %v...\n", mainPort)
 
 	go func() {
 		err := http.ListenAndServe(mainAddr, mainRouter)
@@ -125,8 +142,8 @@ func main() {
 
 	// Start the webhook HTTP server on port 42069
 	webhookPort := 42069
-	webhookAddr := fmt.Sprintf(":%d", webhookPort)
-	//fmt.Printf("Webhook server running on port %d...\n", webhookPort)
+	webhookAddr := fmt.Sprintf(":%v", webhookPort)
+	fmt.Printf("Webhook server running on port %v...\n", webhookPort)
 
 	err := http.ListenAndServe(webhookAddr, webhookRouter)
 	if err != nil {

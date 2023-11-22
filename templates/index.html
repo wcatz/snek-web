@@ -7,11 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Title</title>
     <link rel="stylesheet" href="/static/css/output.min.css" />
-    <script src="https://unpkg.com/htmx.org@1.7.0/dist/htmx.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
   </head>
   <body class="bg-gray-900 text-white container-fluid">
 
     <!-- Main Content Section -->
+    <div id="partial-container" hx-get="/webhook_data" hx-trigger="every 1s" hx-swap="innerHTML">
     {{ template "webhook_data.html" . }}
+  </div>
   </body>
 </html>
