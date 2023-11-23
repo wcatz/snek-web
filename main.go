@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -58,7 +57,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 // Ride the Snek
 
 type Indexer struct {
-	pipeline *pipeline.Pipeline
+	pipeline   *pipeline.Pipeline
+	blockEvent BlockEvent
 }
 
 // Singleton indexer instance
@@ -128,13 +128,29 @@ func (i *Indexer) handleEvent(event event.Event) error {
 		return err
 	}
 
-	// Print the block number
-	fmt.Println(blockEvent.Context.BlockNumber)
+	i.blockEvent = blockEvent
 
-	// Handle the event with the payload
-	fmt.Println("Received event:", stringData)
+	// Print the block number
+	// fmt.Println(blockEvent.Context.BlockNumber)
+
+	// // Handle the event with the payload
+	// fmt.Println("Received event:", stringData)
 	return nil
 }
+
+// Function to get the block event and its data
+func (i *Indexer) GetBlockEvent() BlockEvent {
+	return i.blockEvent
+}
+
+// Just testing function to prove can access the data from the block event
+// func getBlockNumber() int {
+// 	// Access the blockEvent or specific data fields
+// 	event := globalIndexer.GetBlockEvent()
+// 	fmt.Println(event.Context.BlockNumber)
+// 	// Use the data as needed
+// 	return event.Context.BlockNumber
+// }
 
 func main() {
 
@@ -142,6 +158,22 @@ func main() {
 	if err := globalIndexer.Start(); err != nil {
 		log.Fatalf("failed to start snek: %s", err)
 	}
+
+	// You can uncomment this to test the getBlockNumber function is accessing the data correctly
+	// Get the block number from the latest block event from the pipeline
+	// go func() {
+
+	// 	// need a loop here to keep getting the latest block number
+	// 	for {
+
+	// 		// Wait for a short period to allow the pipeline to receive block events
+	// 		time.Sleep(2 * time.Second)
+
+	// 		// Get the block number from the latest block event from the pipeline
+	// 		blockNumber := getBlockNumber()
+	// 		fmt.Println("Latest block number:", blockNumber)
+	// 	}
+	// }()
 
 	// Rest of your code
 	http.HandleFunc("/", handler)
