@@ -3,12 +3,12 @@ module snek-web
 go 1.20
 
 require (
-	github.com/blinklabs-io/gouroboros v0.61.0
 	github.com/blinklabs-io/snek v0.15.0
 	github.com/gorilla/websocket v1.5.1
 )
 
 require (
+	github.com/blinklabs-io/gouroboros v0.61.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.5.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect

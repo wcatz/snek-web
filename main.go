@@ -13,14 +13,27 @@ import (
 	output_embedded "github.com/blinklabs-io/snek/output/embedded"
 	"github.com/blinklabs-io/snek/pipeline"
 	"github.com/gorilla/websocket"
-	// models "github.com/blinklabs-io/cardano-models"
-	// cbor "github.com/blinklabs-io/gouroboros/cbor"
-	// ocommon "github.com/blinklabs-io/gouroboros/protocol/common"
 )
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+}
+
+type BlockEvent struct {
+	Type      string `json:"type"`
+	Timestamp string `json:"timestamp"`
+	Context   struct {
+		BlockNumber  int `json:"blockNumber"`
+		SlotNumber   int `json:"slotNumber"`
+		NetworkMagic int `json:"networkMagic"`
+	} `json:"context"`
+	Payload struct {
+		BlockBodySize    int    `json:"blockBodySize"`
+		IssuerVkey       string `json:"issuerVkey"`
+		BlockHash        string `json:"blockHash"`
+		TransactionCount int    `json:"transactionCount"`
+	} `json:"payload"`
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +66,7 @@ var globalIndexer = &Indexer{}
 
 // Define input options
 var inputOpts = []chainsync.ChainSyncOptionFunc{
-	chainsync.WithAddress("otg-relay-1.adamantium.online:6001"),
+	chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001"),
 	chainsync.WithNetworkMagic(764824073),
 	chainsync.WithIntersectTip(true),
 }
@@ -106,8 +119,20 @@ func (i *Indexer) handleEvent(event event.Event) error {
 		return err
 	}
 
+	stringData := string(data)
+
+	// Using the Struct we defined above to parse the event
+	var blockEvent BlockEvent
+	err = json.Unmarshal([]byte(stringData), &blockEvent)
+	if err != nil {
+		return err
+	}
+
+	// Print the block number
+	fmt.Println(blockEvent.Context.BlockNumber)
+
 	// Handle the event with the payload
-	fmt.Println("Received event:", string(data))
+	fmt.Println("Received event:", stringData)
 	return nil
 }
 
