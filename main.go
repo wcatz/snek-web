@@ -1,19 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+
 	"github.com/blinklabs-io/snek/event"
 	filter_event "github.com/blinklabs-io/snek/filter/event"
 	"github.com/blinklabs-io/snek/input/chainsync"
 	output_embedded "github.com/blinklabs-io/snek/output/embedded"
 	"github.com/blinklabs-io/snek/pipeline"
 	"github.com/gorilla/websocket"
-	"html/template"
-	"log"
-	"net/http"
-//	models "github.com/blinklabs-io/cardano-models"
-//	cbor "github.com/blinklabs-io/gouroboros/cbor"
-//	ocommon "github.com/blinklabs-io/gouroboros/protocol/common"
+	// models "github.com/blinklabs-io/cardano-models"
+	// cbor "github.com/blinklabs-io/gouroboros/cbor"
+	// ocommon "github.com/blinklabs-io/gouroboros/protocol/common"
 )
 
 var upgrader = websocket.Upgrader{
@@ -50,8 +52,8 @@ type Indexer struct {
 var globalIndexer = &Indexer{}
 
 // Define input options
-var inputOpts = []chainsync.ChainSyncOptionFunc {
-	chainsync.WithAddress("m2:6002"),
+var inputOpts = []chainsync.ChainSyncOptionFunc{
+	chainsync.WithAddress("otg-relay-1.adamantium.online:6001"),
 	chainsync.WithNetworkMagic(764824073),
 	chainsync.WithIntersectTip(true),
 }
@@ -98,14 +100,16 @@ func (i *Indexer) Start() error {
 
 // Define handleEvent function
 func (i *Indexer) handleEvent(event event.Event) error {
-    // Access the payload field
-    payload := event.Payload
 
-    // Handle the event with the payload
-    fmt.Println("Received event:", payload)
-    return nil
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	// Handle the event with the payload
+	fmt.Println("Received event:", string(data))
+	return nil
 }
-
 
 func main() {
 
