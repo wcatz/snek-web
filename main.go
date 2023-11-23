@@ -1,139 +1,121 @@
-// main.go
-
 package main
 
 import (
+	"fmt"
+	"github.com/blinklabs-io/snek/event"
+	filter_event "github.com/blinklabs-io/snek/filter/event"
+	"github.com/blinklabs-io/snek/input/chainsync"
+	output_embedded "github.com/blinklabs-io/snek/output/embedded"
+	"github.com/blinklabs-io/snek/pipeline"
+	"github.com/gorilla/websocket"
 	"html/template"
 	"log"
 	"net/http"
-	"path/filepath"
-	"sync"
-
-	"github.com/gorilla/websocket"
+//	models "github.com/blinklabs-io/cardano-models"
+	"github.com/blinklabs-io/gouroboros/cbor"
+//	ocommon "github.com/blinklabs-io/gouroboros/protocol/common"
 )
 
-var (
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-	clients   = make(map[*websocket.Conn]bool)
-	clientsMu sync.Mutex
-	templates *template.Template
-)
-
-type pipeline struct {
-	input  chan interface{}
-	output chan interface{}
-}
-
-func newPipeline() *pipeline {
-	return &pipeline{
-		input:  make(chan interface{}),
-		output: make(chan interface{}),
-	}
-}
-
-func (p *pipeline) send(data interface{}) {
-	p.input <- data
-}
-
-func (p *pipeline) receive() <-chan interface{} {
-	return p.output
-}
-
-func (p *pipeline) start() {
-	go func() {
-		for {
-			data := <-p.input
-			// You can perform any processing on 'data' here
-			// For simplicity, just forward it to the output channel
-			p.output <- data
-
-			// Send the data to all connected clients
-			clientsMu.Lock()
-			for client := range clients {
-				err := client.WriteMessage(websocket.TextMessage, []byte(data.(string)))
-				if err != nil {
-					log.Printf("Error sending message to client: %v", err)
-				}
-			}
-			clientsMu.Unlock()
-		}
-	}()
-}
-
-func init() {
-	templatesPath := filepath.Join(".", "templates", "*.html")
-	templates = template.Must(template.ParseGlob(templatesPath))
-}
-
-func renderError(w http.ResponseWriter, err error, statusCode int) {
-	log.Printf("Error: %v", err)
-	http.Error(w, http.StatusText(statusCode), statusCode)
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "index.html", r.Host)
+	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
-		renderError(w, err, http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-var dataPipeline *pipeline
-
-func init() {
-	dataPipeline = newPipeline()
-	dataPipeline.start()
+	tmpl.Execute(w, nil)
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		renderError(w, err, http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer func() {
-		clientsMu.Lock()
-		delete(clients, conn)
-		clientsMu.Unlock()
-		closeErr := conn.Close()
-		if closeErr != nil {
-			log.Printf("Error closing connection: %v", closeErr)
+	defer conn.Close()
+
+}
+
+// Ride the Snek
+
+type Indexer struct {
+	pipeline *pipeline.Pipeline
+}
+
+// Singleton indexer instance
+var globalIndexer = &Indexer{}
+
+// Define input options
+var inputOpts = []chainsync.ChainSyncOptionFunc {
+	chainsync.WithAddress("m2:6002"),
+	chainsync.WithNetworkMagic(764824073),
+}
+
+func (i *Indexer) Start() error {
+	// Create pipeline
+	i.pipeline = pipeline.New()
+
+	// Configure pipeline input
+	input_chainsync := chainsync.New(
+		inputOpts...,
+	)
+
+	i.pipeline.AddInput(input_chainsync)
+
+	// Configure pipeline filters
+	// We only care about block events
+	filterEvent := filter_event.New(
+		filter_event.WithTypes([]string{"chainsync.block"}),
+	)
+	i.pipeline.AddFilter(filterEvent)
+
+	// Configure pipeline output
+	output := output_embedded.New(
+		output_embedded.WithCallbackFunc(i.handleEvent),
+	)
+	i.pipeline.AddOutput(output)
+
+	// Start pipeline
+	if err := i.pipeline.Start(); err != nil {
+		log.Fatalf("failed to start pipeline: %s\n", err)
+	}
+
+	// Start error handler
+	go func() {
+		err, ok := <-i.pipeline.ErrorChan()
+		if ok {
+			log.Fatalf("pipeline failed: %s\n", err)
 		}
 	}()
 
-	clientsMu.Lock()
-	clients[conn] = true
-	clientsMu.Unlock()
-
-	// Handle WebSocket messages here
-	go handleWebSocketMessages(conn)
+	return nil
 }
 
-func handleWebSocketMessages(conn *websocket.Conn) {
-	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Printf("Error reading message: %v", err)
-			return
-		}
+// Define handleEvent function
+func (i *Indexer) handleEvent(event event.Event) error {
+    // Access the payload field
+    payload := event.Payload
 
-		// Send the received message through the pipeline
-		dataPipeline.send(string(message))
-	}
+    // Handle the event with the payload
+    fmt.Println("Received event:", payload)
+    return nil
 }
+
 
 func main() {
+
+	// Start snek
+	if err := globalIndexer.Start(); err != nil {
+		log.Fatalf("failed to start snek: %s", err)
+	}
+
+	// Rest of your code
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
 
-	addr := ":8080"
-	log.Printf("Server started on %s\n", addr)
-
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		log.Fatalf("Error starting server: %v", err)
-	}
+	http.ListenAndServe(":8080", nil)
 }

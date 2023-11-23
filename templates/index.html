@@ -1,21 +1,18 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Example</title>
+</head>
+<body>
+    <h1>WebSocket Connection Status</h1>
+
+
+
     <script>
-      var socket = new WebSocket("ws://{{.}}/ws");
-
-      socket.onmessage = function (event) {
-        var data = JSON.parse(event.data);
-        var formattedData = JSON.stringify(data, null, 2);
-        document.getElementById("data").innerHTML =
-          "<pre>" + formattedData + "</pre>";
-      };
+        let socket = new WebSocket('ws://localhost:8080/ws');
     </script>
-  </head>
-
-  <body>
-    <h1>WebSocket Example</h1>
-    <div id="data"></div>
-  </body>
+</body>
 </html>
