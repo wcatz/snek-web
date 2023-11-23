@@ -12,7 +12,7 @@ import (
 	"log"
 	"net/http"
 //	models "github.com/blinklabs-io/cardano-models"
-	"github.com/blinklabs-io/gouroboros/cbor"
+//	cbor "github.com/blinklabs-io/gouroboros/cbor"
 //	ocommon "github.com/blinklabs-io/gouroboros/protocol/common"
 )
 
@@ -53,6 +53,7 @@ var globalIndexer = &Indexer{}
 var inputOpts = []chainsync.ChainSyncOptionFunc {
 	chainsync.WithAddress("m2:6002"),
 	chainsync.WithNetworkMagic(764824073),
+	chainsync.WithIntersectTip(true),
 }
 
 func (i *Indexer) Start() error {
