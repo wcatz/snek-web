@@ -2,22 +2,32 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
+	"sync"
 
 	"github.com/blinklabs-io/snek/event"
 	filter_event "github.com/blinklabs-io/snek/filter/event"
 	"github.com/blinklabs-io/snek/input/chainsync"
 	output_embedded "github.com/blinklabs-io/snek/output/embedded"
 	"github.com/blinklabs-io/snek/pipeline"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	clients   = make(map[*websocket.Conn]bool)
+	clientsMu sync.Mutex
+	events    = make(chan BlockEvent)
+	templates *template.Template
+)
 
 type BlockEvent struct {
 	Type      string `json:"type"`
@@ -35,6 +45,11 @@ type BlockEvent struct {
 	} `json:"payload"`
 }
 
+func init() {
+	templatesPath := filepath.Join(".", "templates", "*.html")
+	templates = template.Must(template.ParseGlob(templatesPath))
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
@@ -47,11 +62,59 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		clientsMu.Lock()
+		delete(clients, conn)
+		clientsMu.Unlock()
+		conn.Close()
+	}()
 
+	clientsMu.Lock()
+	clients[conn] = true
+	clientsMu.Unlock()
+
+	for snekEvent := range events {
+		clientsMu.Lock()
+		for client := range clients {
+			// Check if the WebSocket connection is still open
+			if err := client.WriteJSON(snekEvent); err != nil {
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
+					// Connection is closed by the client, remove it from the clients map
+					delete(clients, client)
+				} else {
+					log.Println("Error writing to client:", err)
+				}
+			}
+		}
+		clientsMu.Unlock()
+	}
+}
+
+func handleWebhook(w http.ResponseWriter, r *http.Request) {
+	var snekEvent BlockEvent
+	if err := json.NewDecoder(r.Body).Decode(&snekEvent); err != nil {
+		log.Println("Error decoding webhook data:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// Do something with the webhook data if needed
+	fmt.Printf("Received webhook data: %+v\n", snekEvent)
+
+	// Send the event to WebSocket clients
+	clientsMu.Lock()
+	for client := range clients {
+		err := client.WriteJSON(snekEvent)
+		if err != nil {
+			log.Println("Error writing to client:", err)
+		}
+	}
+	clientsMu.Unlock()
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Ride the Snek
@@ -138,42 +201,28 @@ func (i *Indexer) handleEvent(event event.Event) error {
 	return nil
 }
 
-// Function to get the block event and its data
-func (i *Indexer) GetBlockEvent() BlockEvent {
-	return i.blockEvent
-}
-
-// Just testing function to prove can access the data from the block event
-// func getBlockNumber() int {
-// 	// Access the blockEvent or specific data fields
-// 	event := globalIndexer.GetBlockEvent()
-// 	fmt.Println(event.Context.BlockNumber)
-// 	// Use the data as needed
-// 	return event.Context.BlockNumber
-// }
-
 func main() {
+
+	// Set up the Gorilla Mux router for the webhook server on port 42069
+	webhookRouter := mux.NewRouter()
+	webhookRouter.HandleFunc("/webhook", handleWebhook).Methods(http.MethodPost)
 
 	// Start snek
 	if err := globalIndexer.Start(); err != nil {
 		log.Fatalf("failed to start snek: %s", err)
 	}
 
-	// You can uncomment this to test the getBlockNumber function is accessing the data correctly
-	// Get the block number from the latest block event from the pipeline
-	// go func() {
+	// Start the webhook HTTP server on port 42069
+	webhookPort := 42069
+	webhookAddr := fmt.Sprintf(":%v", webhookPort)
+	fmt.Printf("Webhook server running on port %v...\n", webhookPort)
 
-	// 	// need a loop here to keep getting the latest block number
-	// 	for {
-
-	// 		// Wait for a short period to allow the pipeline to receive block events
-	// 		time.Sleep(2 * time.Second)
-
-	// 		// Get the block number from the latest block event from the pipeline
-	// 		blockNumber := getBlockNumber()
-	// 		fmt.Println("Latest block number:", blockNumber)
-	// 	}
-	// }()
+	go func() {
+		err := http.ListenAndServe(webhookAddr, webhookRouter)
+		if err != nil {
+			fmt.Println("Error starting webhook HTTP server:", err)
+		}
+	}()
 
 	// Rest of your code
 	http.HandleFunc("/", handler)
