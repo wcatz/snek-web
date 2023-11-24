@@ -14,7 +14,6 @@ import (
 	"github.com/blinklabs-io/snek/input/chainsync"
 	output_embedded "github.com/blinklabs-io/snek/output/embedded"
 	"github.com/blinklabs-io/snek/pipeline"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
@@ -45,6 +44,10 @@ type BlockEvent struct {
 	} `json:"payload"`
 }
 
+type TemplateData struct {
+	BlockEvent BlockEvent
+}
+
 func init() {
 	templatesPath := filepath.Join(".", "templates", "*.html")
 	templates = template.Must(template.ParseGlob(templatesPath))
@@ -56,114 +59,95 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+
+	// Create a sample BlockEvent (replace this with your actual data)
+	blockEvent := BlockEvent{
+		Type: "sample",
+		// ... other fields ...
+	}
+
+	data := TemplateData{
+		BlockEvent: blockEvent,
+	}
+
+	// Pass the TemplateData to the template
+	tmpl.Execute(w, data)
 }
-
-func wsHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	defer func() {
-		clientsMu.Lock()
-		delete(clients, conn)
-		clientsMu.Unlock()
-		conn.Close()
-	}()
-
-	clientsMu.Lock()
-	clients[conn] = true
-	clientsMu.Unlock()
-
-	for snekEvent := range events {
-		clientsMu.Lock()
-		for client := range clients {
-			// Check if the WebSocket connection is still open
-			if err := client.WriteJSON(snekEvent); err != nil {
-				if websocket.IsCloseError(err, websocket.CloseNormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
-					// Connection is closed by the client, remove it from the clients map
-					delete(clients, client)
-				} else {
-					log.Println("Error writing to client:", err)
-				}
-			}
-		}
-		clientsMu.Unlock()
-	}
-}
-
-func handleWebhook(w http.ResponseWriter, r *http.Request) {
-	var snekEvent BlockEvent
-	if err := json.NewDecoder(r.Body).Decode(&snekEvent); err != nil {
-		log.Println("Error decoding webhook data:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	// Do something with the webhook data if needed
-	fmt.Printf("Received webhook data: %+v\n", snekEvent)
-
-	// Send the event to WebSocket clients
-	clientsMu.Lock()
-	for client := range clients {
-		err := client.WriteJSON(snekEvent)
-		if err != nil {
-			log.Println("Error writing to client:", err)
-		}
-	}
-	clientsMu.Unlock()
-
-	w.WriteHeader(http.StatusOK)
-}
-
-// Ride the Snek
 
 type Indexer struct {
 	pipeline   *pipeline.Pipeline
 	blockEvent BlockEvent
 }
 
-// Singleton indexer instance
 var globalIndexer = &Indexer{}
 
-// Define input options
 var inputOpts = []chainsync.ChainSyncOptionFunc{
 	chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001"),
 	chainsync.WithNetworkMagic(764824073),
 	chainsync.WithIntersectTip(true),
 }
 
+func wsHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer conn.Close()
+
+	// Add the new client to the clients map
+	clientsMu.Lock()
+	clients[conn] = true
+	clientsMu.Unlock()
+
+	for {
+		select {
+		case blockEvent := <-events:
+			// Serialize the block event to JSON
+			message, err := json.Marshal(blockEvent)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			// Iterate over connected clients and send the message
+			clientsMu.Lock()
+			for client := range clients {
+				err := client.WriteMessage(websocket.TextMessage, message)
+				if err != nil {
+					log.Println(err)
+					client.Close()
+					delete(clients, client)
+				}
+			}
+			clientsMu.Unlock()
+		}
+	}
+}
+
 func (i *Indexer) Start() error {
-	// Create pipeline
 	i.pipeline = pipeline.New()
 
-	// Configure pipeline input
 	input_chainsync := chainsync.New(
 		inputOpts...,
 	)
 
 	i.pipeline.AddInput(input_chainsync)
 
-	// Configure pipeline filters
-	// We only care about block events
 	filterEvent := filter_event.New(
 		filter_event.WithTypes([]string{"chainsync.block"}),
 	)
 	i.pipeline.AddFilter(filterEvent)
 
-	// Configure pipeline output
 	output := output_embedded.New(
 		output_embedded.WithCallbackFunc(i.handleEvent),
 	)
 	i.pipeline.AddOutput(output)
 
-	// Start pipeline
 	if err := i.pipeline.Start(); err != nil {
 		log.Fatalf("failed to start pipeline: %s\n", err)
 	}
 
-	// Start error handler
 	go func() {
 		err, ok := <-i.pipeline.ErrorChan()
 		if ok {
@@ -174,9 +158,7 @@ func (i *Indexer) Start() error {
 	return nil
 }
 
-// Define handleEvent function
 func (i *Indexer) handleEvent(event event.Event) error {
-
 	data, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -184,7 +166,6 @@ func (i *Indexer) handleEvent(event event.Event) error {
 
 	stringData := string(data)
 
-	// Using the Struct we defined above to parse the event
 	var blockEvent BlockEvent
 	err = json.Unmarshal([]byte(stringData), &blockEvent)
 	if err != nil {
@@ -193,38 +174,19 @@ func (i *Indexer) handleEvent(event event.Event) error {
 
 	i.blockEvent = blockEvent
 
-	// Print the block number
-	// fmt.Println(blockEvent.Context.BlockNumber)
+	fmt.Println(blockEvent.Context.BlockNumber)
 
-	// // Handle the event with the payload
-	// fmt.Println("Received event:", stringData)
+	// Send the block event to the WebSocket clients
+	events <- blockEvent
+
 	return nil
 }
 
 func main() {
-
-	// Set up the Gorilla Mux router for the webhook server on port 42069
-	webhookRouter := mux.NewRouter()
-	webhookRouter.HandleFunc("/webhook", handleWebhook).Methods(http.MethodPost)
-
-	// Start snek
 	if err := globalIndexer.Start(); err != nil {
 		log.Fatalf("failed to start snek: %s", err)
 	}
 
-	// Start the webhook HTTP server on port 42069
-	webhookPort := 42069
-	webhookAddr := fmt.Sprintf(":%v", webhookPort)
-	fmt.Printf("Webhook server running on port %v...\n", webhookPort)
-
-	go func() {
-		err := http.ListenAndServe(webhookAddr, webhookRouter)
-		if err != nil {
-			fmt.Println("Error starting webhook HTTP server:", err)
-		}
-	}()
-
-	// Rest of your code
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
 
