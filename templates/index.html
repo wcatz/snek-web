@@ -11,61 +11,65 @@
 </head>
 
 <body>
-    <div class="bg-gray-900">
-        <div class="mx-auto max-w-7xl">
-            <div class="grid grid-cols-1 gap-px bg-white/5 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Block Number</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="blockNumber"></span>
-                    </p>
-                </div>
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Slot Number</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="slotNumber"></span>
-                    </p>
-                </div>
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Block Size</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="blockSize"></span>
-                        <span class="text-sm text-gray-400">bytes</span>
-                    </p>
-                </div>
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Transaction Count</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="transactionCount"></span>
-                    </p>
-                </div>
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Type</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="type"></span>
-                    </p>
-                </div>
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Timestamp</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="timestamp"></span>
-                    </p>
-                </div>
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Pool</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="issuerVkey"></span>
-                    </p>
-                </div>
-                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8 text-wrap">
-                    <p class="text-sm font-medium leading-6 text-gray-400">Block Hash</p>
-                    <p class="mt-2 flex items-baseline gap-x-2">
-                        <span class="text-4xl font-semibold tracking-tight text-white" id="blockHash"></span>
-                    </p>
-                </div>
-            </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Type</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="type"></span>
+            </p>
+        </div>
+    
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Timestamp</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="timestamp"></span>
+            </p>
+        </div>
+    
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Block Number</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="blockNumber"></span>
+            </p>
+        </div>
+    
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Slot Number</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="slotNumber"></span>
+            </p>
+        </div>
+    
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Block Size</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="blockSize"></span>
+                <span class="text-sm text-gray-400">bytes</span>
+            </p>
+        </div>
+    
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Pool</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="issuerVkey"></span>
+            </p>
+        </div>
+    
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Block Hash</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="blockHash"></span>
+            </p>
+        </div>
+    
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <p class="text-sm font-medium leading-6 text-gray-400">Transaction Count</p>
+            <p class="mt-2">
+                <span class="text-lg font-semibold tracking-tight text-white" id="transactionCount"></span>
+            </p>
         </div>
     </div>
+    
     
     
 
