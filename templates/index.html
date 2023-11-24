@@ -11,12 +11,63 @@
 </head>
 
 <body>
-    <div id="output">
-        <p>Block Number: <span id="blockNumber">Waiting...</span></p>
-        <p>Slot Number: <span id="slotNumber">Waiting...</span></p>
-        <p>Block Size: <span id="blockSize" hx-target="#blockSize">Waiting...</span> bytes</p>
-        <p>Transaction Count: <span id="transactionCount" hx-target="#transactionCount">Waiting...</span></p>
+    <div class="bg-gray-900">
+        <div class="mx-auto max-w-7xl">
+            <div class="grid grid-cols-1 gap-px bg-white/5 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Block Number</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="blockNumber"></span>
+                    </p>
+                </div>
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Slot Number</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="slotNumber"></span>
+                    </p>
+                </div>
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Block Size</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="blockSize"></span>
+                        <span class="text-sm text-gray-400">bytes</span>
+                    </p>
+                </div>
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Transaction Count</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="transactionCount"></span>
+                    </p>
+                </div>
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Type</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="type"></span>
+                    </p>
+                </div>
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Timestamp</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="timestamp"></span>
+                    </p>
+                </div>
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Pool</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="issuerVkey"></span>
+                    </p>
+                </div>
+                <div class="bg-gray-900 px-4 py-6 sm:px-6 lg:px-8 text-wrap">
+                    <p class="text-sm font-medium leading-6 text-gray-400">Block Hash</p>
+                    <p class="mt-2 flex items-baseline gap-x-2">
+                        <span class="text-4xl font-semibold tracking-tight text-white" id="blockHash"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    
 
     <script>
         // Event handler for incoming messages
@@ -24,11 +75,16 @@
             // Parse the JSON message
             const blockEvent = JSON.parse(event.data);
 
-            // Update the HTML with the received data
+            // Snek block events
+            document.getElementById("type").innerText = blockEvent.type;
+            document.getElementById("timestamp").innerText = blockEvent.timestamp;
             document.getElementById("blockNumber").innerText = blockEvent.context.blockNumber;
             document.getElementById("slotNumber").innerText = blockEvent.context.slotNumber;
             document.getElementById("blockSize").innerText = blockEvent.payload.blockBodySize;
+            document.getElementById("issuerVkey").innerText = blockEvent.payload.issuerVkey;
+            document.getElementById("blockHash").innerText = blockEvent.payload.blockHash;
             document.getElementById("transactionCount").innerText = blockEvent.payload.transactionCount;
+            
         }
 
         // Create a WebSocket connection
@@ -38,8 +94,6 @@
         socket.addEventListener("open", (event) => {
             console.log("WebSocket connection established:", event);
 
-            // Trigger initial data retrieval
-            htmx.trigger(document.getElementById("output"), "get");
         });
 
         // Event handler for WebSocket errors

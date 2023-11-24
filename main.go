@@ -192,10 +192,10 @@ func main() {
 	}
 
 	// Define HTTP handlers
-	
+
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// Start the HTTP server on port 8080
 	http.ListenAndServe(":8080", nil)
