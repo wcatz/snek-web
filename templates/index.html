@@ -1,36 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Example</title>
+    <link rel="stylesheet" href="/static/css/output.min.css" />
+
 </head>
+
 <body>
-    <div id="output"></div>
+    <div id="output">
+        <p>Block Number: <span id="blockNumber">Waiting...</span></p>
+        <p>Slot Number: <span id="slotNumber">Waiting...</span></p>
+        <p>Block Size: <span id="blockSize" hx-target="#blockSize">Waiting...</span> bytes</p>
+        <p>Transaction Count: <span id="transactionCount" hx-target="#transactionCount">Waiting...</span></p>
+    </div>
+
     <script>
+        // Event handler for incoming messages
+        function handleWebSocketMessage(event) {
+            // Parse the JSON message
+            const blockEvent = JSON.parse(event.data);
+
+            // Update the HTML with the received data
+            document.getElementById("blockNumber").innerText = blockEvent.context.blockNumber;
+            document.getElementById("slotNumber").innerText = blockEvent.context.slotNumber;
+            document.getElementById("blockSize").innerText = blockEvent.payload.blockBodySize;
+            document.getElementById("transactionCount").innerText = blockEvent.payload.transactionCount;
+        }
+
         // Create a WebSocket connection
         const socket = new WebSocket("ws://localhost:8080/ws");
 
         // Event handler for when the WebSocket connection is established
         socket.addEventListener("open", (event) => {
             console.log("WebSocket connection established:", event);
-        });
 
-        // Event handler for incoming messages
-        socket.addEventListener("message", (event) => {
-            const outputDiv = document.getElementById("output");
-
-            // Parse the JSON message
-            const blockEvent = JSON.parse(event.data);
-
-            // Update the HTML with the received data
-            outputDiv.innerHTML = `
-                <p>Block Number: ${blockEvent.context.blockNumber}</p>
-                <p>Slot Number: ${blockEvent.context.slotNumber}</p>
-                <p>Block Size: ${blockEvent.payload.blockBodySize} bytes</p>
-                <p>Transaction Count: ${blockEvent.payload.transactionCount}</p>
-            `;
+            // Trigger initial data retrieval
+            htmx.trigger(document.getElementById("output"), "get");
         });
 
         // Event handler for WebSocket errors
@@ -42,6 +51,10 @@
         socket.addEventListener("close", (event) => {
             console.log("WebSocket connection closed:", event);
         });
+
+        // Event handler for incoming messages
+        socket.addEventListener("message", handleWebSocketMessage);
     </script>
 </body>
+
 </html>

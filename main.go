@@ -17,19 +17,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Define the WebSocket connection upgrader
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
-// Maintain a map of connected WebSocket clients
-var clients = make(map[*websocket.Conn]bool)
-var clientsMu sync.Mutex
-
-// Channel to broadcast block events to connected clients
-var events = make(chan BlockEvent)
-
 // HTML template
 var templates *template.Template
 
@@ -50,16 +37,24 @@ type BlockEvent struct {
 	} `json:"payload"`
 }
 
-// TemplateData struct for passing data to HTML templates
-type TemplateData struct {
-	BlockEvent BlockEvent
-}
-
 // Initialize the HTML templates
 func init() {
 	templatesPath := filepath.Join(".", "templates", "*.html")
 	templates = template.Must(template.ParseGlob(templatesPath))
 }
+
+// Define the WebSocket connection upgrader
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+// Maintain a map of connected WebSocket clients
+var clients = make(map[*websocket.Conn]bool)
+var clientsMu sync.Mutex
+
+// Channel to broadcast block events to connected clients
+var events = make(chan BlockEvent)
 
 // HTTP handler for rendering the HTML page
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -180,8 +175,8 @@ func (i *Indexer) handleEvent(event event.Event) error {
 	// Update the blockEvent field in the Indexer
 	i.blockEvent = blockEvent
 
-	// Print the block number to the console
-	fmt.Println(blockEvent.Context.BlockNumber)
+	// Print the block event struct to the console
+	fmt.Printf("Received BlockEvent: %+v\n", blockEvent)
 
 	// Send the block event to the WebSocket clients
 	events <- blockEvent
@@ -197,8 +192,10 @@ func main() {
 	}
 
 	// Define HTTP handlers
+	
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// Start the HTTP server on port 8080
 	http.ListenAndServe(":8080", nil)
