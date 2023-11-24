@@ -12,9 +12,7 @@
   <body>
     <div class="p-10">
         <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col">
-            <p class="text-sm font-medium leading-6 text-white mb-2">Snek on:<!-- Inside your HTML template -->
-                <span>{{.WithAddress}}</span>
-                </p>
+            <p class="text-sm font-medium leading-6 text-white mb-2">Block Information</p>
             <div class="flex-1 overflow-auto">
                 <pre class="text-green-600">
         Type: <span id="type"></span>
@@ -28,10 +26,10 @@
                 </pre>
             </div>
             <div class="flex justify-center gap-1">
-                <button onclick="copyToClipboard('issuerVkey')" class="mt-2 bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-800">
+                <button onclick="copyToClipboard('issuerVkey')" class="mt-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-800">
                     Copy Pool
                 </button>
-                <button onclick="copyToClipboard('blockHash')" class="mt-2 bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-800">
+                <button onclick="copyToClipboard('blockHash')" class="mt-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-800">
                     Copy Hash
                 </button>
 

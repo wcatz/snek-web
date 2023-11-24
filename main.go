@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/blinklabs-io/snek/event"
 	filter_event "github.com/blinklabs-io/snek/filter/event"
@@ -76,9 +77,11 @@ type Indexer struct {
 // Singleton instance of the Indexer
 var globalIndexer = &Indexer{}
 
+// Declare a temporary variable to capture the result of the function call
+var node = chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001")
 // Options for the ChainSync input
 var inputOpts = []chainsync.ChainSyncOptionFunc{
-	chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001"),
+	node,
 	chainsync.WithNetworkMagic(764824073),
 	chainsync.WithIntersectTip(true),
 }
@@ -170,6 +173,12 @@ func (i *Indexer) handleEvent(event event.Event) error {
 	err = json.Unmarshal(data, &blockEvent)
 	if err != nil {
 		return err
+	}
+
+	// Format the timestamp into a human-readable form
+	parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
+	if err == nil {
+		blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
 	}
 
 	// Update the blockEvent field in the Indexer
