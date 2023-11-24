@@ -17,17 +17,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var (
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-	clients   = make(map[*websocket.Conn]bool)
-	clientsMu sync.Mutex
-	events    = make(chan BlockEvent)
-	templates *template.Template
-)
+// Define the WebSocket connection upgrader
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
+// Maintain a map of connected WebSocket clients
+var clients = make(map[*websocket.Conn]bool)
+var clientsMu sync.Mutex
+
+// Channel to broadcast block events to connected clients
+var events = make(chan BlockEvent)
+
+// HTML template
+var templates *template.Template
+
+// BlockEvent struct representing the structure of a block event
 type BlockEvent struct {
 	Type      string `json:"type"`
 	Timestamp string `json:"timestamp"`
@@ -44,50 +50,47 @@ type BlockEvent struct {
 	} `json:"payload"`
 }
 
+// TemplateData struct for passing data to HTML templates
 type TemplateData struct {
 	BlockEvent BlockEvent
 }
 
+// Initialize the HTML templates
 func init() {
 	templatesPath := filepath.Join(".", "templates", "*.html")
 	templates = template.Must(template.ParseGlob(templatesPath))
 }
 
+// HTTP handler for rendering the HTML page
 func handler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/index.html")
-	if err != nil {
+	// No need to create a BlockEvent here; it will be populated when a new event occurs.
+
+	// Pass the TemplateData to the template
+	if err := templates.ExecuteTemplate(w, "index.html", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Create a sample BlockEvent (replace this with your actual data)
-	blockEvent := BlockEvent{
-		Type: "sample",
-		// ... other fields ...
-	}
-
-	data := TemplateData{
-		BlockEvent: blockEvent,
-	}
-
-	// Pass the TemplateData to the template
-	tmpl.Execute(w, data)
 }
 
+// Indexer struct to manage the Snek pipeline and block events
 type Indexer struct {
 	pipeline   *pipeline.Pipeline
 	blockEvent BlockEvent
 }
 
+// Singleton instance of the Indexer
 var globalIndexer = &Indexer{}
 
+// Options for the ChainSync input
 var inputOpts = []chainsync.ChainSyncOptionFunc{
 	chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001"),
 	chainsync.WithNetworkMagic(764824073),
 	chainsync.WithIntersectTip(true),
 }
 
+// WebSocket handler for broadcasting block events to connected clients
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -102,6 +105,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
+		// Wait for a new block event to be sent to the events channel
 		case blockEvent := <-events:
 			// Serialize the block event to JSON
 			message, err := json.Marshal(blockEvent)
@@ -125,29 +129,29 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Start the Snek pipeline and handle block events
 func (i *Indexer) Start() error {
+	// Create a new pipeline
 	i.pipeline = pipeline.New()
 
-	input_chainsync := chainsync.New(
-		inputOpts...,
-	)
-
+	// Configure ChainSync input
+	input_chainsync := chainsync.New(inputOpts...)
 	i.pipeline.AddInput(input_chainsync)
 
-	filterEvent := filter_event.New(
-		filter_event.WithTypes([]string{"chainsync.block"}),
-	)
+	// Configure filter to handle only block events
+	filterEvent := filter_event.New(filter_event.WithTypes([]string{"chainsync.block"}))
 	i.pipeline.AddFilter(filterEvent)
 
-	output := output_embedded.New(
-		output_embedded.WithCallbackFunc(i.handleEvent),
-	)
+	// Configure embedded output with callback function
+	output := output_embedded.New(output_embedded.WithCallbackFunc(i.handleEvent))
 	i.pipeline.AddOutput(output)
 
+	// Start the pipeline
 	if err := i.pipeline.Start(); err != nil {
 		log.Fatalf("failed to start pipeline: %s\n", err)
 	}
 
+	// Start error handler in a goroutine
 	go func() {
 		err, ok := <-i.pipeline.ErrorChan()
 		if ok {
@@ -158,22 +162,25 @@ func (i *Indexer) Start() error {
 	return nil
 }
 
+// Handle block events received from the Snek pipeline
 func (i *Indexer) handleEvent(event event.Event) error {
+	// Marshal the event to JSON
 	data, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	stringData := string(data)
-
+	// Unmarshal JSON data into BlockEvent struct
 	var blockEvent BlockEvent
-	err = json.Unmarshal([]byte(stringData), &blockEvent)
+	err = json.Unmarshal(data, &blockEvent)
 	if err != nil {
 		return err
 	}
 
+	// Update the blockEvent field in the Indexer
 	i.blockEvent = blockEvent
 
+	// Print the block number to the console
 	fmt.Println(blockEvent.Context.BlockNumber)
 
 	// Send the block event to the WebSocket clients
@@ -182,13 +189,17 @@ func (i *Indexer) handleEvent(event event.Event) error {
 	return nil
 }
 
+// Main function to start the Snek pipeline and serve HTTP requests
 func main() {
+	// Start the Snek pipeline
 	if err := globalIndexer.Start(); err != nil {
 		log.Fatalf("failed to start snek: %s", err)
 	}
 
+	// Define HTTP handlers
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
 
+	// Start the HTTP server on port 8080
 	http.ListenAndServe(":8080", nil)
 }
