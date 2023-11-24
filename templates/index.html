@@ -11,12 +11,10 @@
 
   <body>
     <div class="p-10">
-        <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col">
-            <p class="text-sm font-medium leading-6 text-white mb-2">Snek on:<!-- Inside your HTML template -->
-                <span>{{.WithAddress}}</span>
-                </p>
-            <div class="flex-1 overflow-auto">
-                <pre class="text-green-600">
+      <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-yellow-600">
+        <p class="text-sm font-medium leading-6 text-white mb-2">Snek on:</p>
+        <div class="flex-1 overflow-auto">
+          <pre class="text-green-600">
         Type: <span id="type"></span>
         Timestamp: <span id="timestamp"></span>
         Block Number: <span id="blockNumber"></span>
@@ -25,18 +23,23 @@
         Pool: <span id="issuerVkey"></span>
         Block Hash: <span id="blockHash"></span>
         Transaction Count: <span id="transactionCount"></span>
-                </pre>
-            </div>
-            <div class="flex justify-center gap-1">
-                <button onclick="copyToClipboard('issuerVkey')" class="mt-2 bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-800">
-                    Copy Pool
-                </button>
-                <button onclick="copyToClipboard('blockHash')" class="mt-2 bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-800">
-                    Copy Hash
-                </button>
-
-            </div>
+            </pre>
         </div>
+        <div class="flex justify-center gap-1">
+          <button
+            onclick="copyToClipboard('issuerVkey')"
+            class="mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900"
+          >
+            Copy Pool
+          </button>
+          <button
+            onclick="copyToClipboard('blockHash')"
+            class="mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900"
+          >
+            Copy Hash
+          </button>
+        </div>
+      </div>
     </div>
     <script>
       // Event handler for incoming messages
@@ -84,19 +87,18 @@
 
       function copyToClipboard(id) {
         const element = document.getElementById(id);
-        const tempInput = document.createElement('textarea');
+        const tempInput = document.createElement("textarea");
         tempInput.value = element.innerText;
         document.body.appendChild(tempInput);
         tempInput.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(tempInput);
-
-        // Optionally, you can add visual feedback here (e.g., show a tooltip or change button text)
-        element.classList.add('text-green-500');
+        // Highlight copy
+        element.classList.add("text-green-300");
         setTimeout(() => {
-            element.classList.remove('text-green-500');
-        }, 1000);
-    }
+          element.classList.remove("text-green-300");
+        }, 500);
+      }
     </script>
   </body>
 </html>

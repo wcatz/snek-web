@@ -21,6 +21,23 @@ import (
 // HTML template
 var templates *template.Template
 
+// Initialize the HTML templates
+func init() {
+	templatesPath := filepath.Join(".", "templates", "*.html")
+	templates = template.Must(template.ParseGlob(templatesPath))
+}
+
+// HTTP handler for rendering the HTML page
+func handler(w http.ResponseWriter, r *http.Request) {
+	// No need to create a BlockEvent here; it will be populated when a new event occurs.
+
+	// Pass the TemplateData to the template
+	if err := templates.ExecuteTemplate(w, "index.html", nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 // BlockEvent struct representing the structure of a block event
 type BlockEvent struct {
 	Type      string `json:"type"`
@@ -38,12 +55,6 @@ type BlockEvent struct {
 	} `json:"payload"`
 }
 
-// Initialize the HTML templates
-func init() {
-	templatesPath := filepath.Join(".", "templates", "*.html")
-	templates = template.Must(template.ParseGlob(templatesPath))
-}
-
 // Define the WebSocket connection upgrader
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -57,17 +68,6 @@ var clientsMu sync.Mutex
 // Channel to broadcast block events to connected clients
 var events = make(chan BlockEvent)
 
-// HTTP handler for rendering the HTML page
-func handler(w http.ResponseWriter, r *http.Request) {
-	// No need to create a BlockEvent here; it will be populated when a new event occurs.
-
-	// Pass the TemplateData to the template
-	if err := templates.ExecuteTemplate(w, "index.html", nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
 // Indexer struct to manage the Snek pipeline and block events
 type Indexer struct {
 	pipeline   *pipeline.Pipeline
@@ -76,15 +76,6 @@ type Indexer struct {
 
 // Singleton instance of the Indexer
 var globalIndexer = &Indexer{}
-
-// Declare a temporary variable to capture the result of the function call
-var node = chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001")
-// Options for the ChainSync input
-var inputOpts = []chainsync.ChainSyncOptionFunc{
-	node,
-	chainsync.WithNetworkMagic(764824073),
-	chainsync.WithIntersectTip(true),
-}
 
 // WebSocket handler for broadcasting block events to connected clients
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -127,6 +118,15 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Declare a temporary variable to capture the result of the function call
+var node = chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001")
+
+// Options for the ChainSync input
+var inputOpts = []chainsync.ChainSyncOptionFunc{
+	node,
+	chainsync.WithNetworkMagic(764824073),
+	chainsync.WithIntersectTip(true),
+}
 // Start the Snek pipeline and handle block events
 func (i *Indexer) Start() error {
 	// Create a new pipeline
