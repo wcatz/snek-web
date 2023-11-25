@@ -3,150 +3,280 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"html/template"
-	"io"
+	"log"
 	"net/http"
-	"os/exec"
 	"path/filepath"
 	"sync"
+	"time"
+
+	"github.com/blinklabs-io/snek/event"
+	filter_event "github.com/blinklabs-io/snek/filter/event"
+	"github.com/blinklabs-io/snek/input/chainsync"
+	output_embedded "github.com/blinklabs-io/snek/output/embedded"
+	"github.com/blinklabs-io/snek/pipeline"
+	"github.com/gorilla/websocket"
 )
 
-type WebhookPayload struct {
-	Type      string `json:"type"`
-	Timestamp string `json:"timestamp"`
-	Context   struct {
-		BlockNumber  int `json:"blockNumber"`
-		SlotNumber   int `json:"slotNumber"`
-		NetworkMagic int `json:"networkMagic"`
-	} `json:"context"`
-	Payload struct {
-		BlockBodySize    int    `json:"blockBodySize"`
-		IssuerVkey       string `json:"issuerVkey"`
-		BlockHash        string `json:"blockHash"`
-		TransactionCount int    `json:"transactionCount"`
-	} `json:"payload"`
-}
-
+// HTML template
 var templates *template.Template
-var mu sync.Mutex
-var latestEventData WebhookPayload
+// Mutex to synchronize access to the node address
+var nodeMu sync.Mutex
+// Node address as a string
+//var nodeAddress string
 
+// Initialize the HTML templates
 func init() {
 	templatesPath := filepath.Join(".", "templates", "*.html")
 	templates = template.Must(template.ParseGlob(templatesPath))
 }
 
-func renderIndex(w http.ResponseWriter, templateName string, data interface{}) {
-	err := templates.ExecuteTemplate(w, templateName, data)
-	if err != nil {
-		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+// TemplateData holds data for the HTML template
+type TemplateData struct {
+	NodeAddress string
+}
+
+// HTTP handler for rendering the HTML page
+func handler(w http.ResponseWriter, r *http.Request) {
+	// Create an instance of TemplateData with the current node address
+	node := TemplateData{
+		NodeAddress: nodeAddress,
+	}
+
+	// Pass the TemplateData to the template
+	if err := templates.ExecuteTemplate(w, "index.html", node); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func renderWebhookData(w http.ResponseWriter, templateName string, data interface{}) {
-	err := templates.ExecuteTemplate(w, templateName, data)
-	if err != nil {
-		http.Error(w, "Error rendering template", http.StatusInternalServerError)
-		return
-	}
-}
-
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	// Serve the index.html file with the latest event data
-	renderIndex(w, "index.html", latestEventData)
-}
-
-func WebhookDataHandler(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	// Serve the webhook_data.html file with the latest event data
-	renderWebhookData(w, "webhook_data.html", latestEventData)
-}
-
-func handleWebhook(w http.ResponseWriter, r *http.Request) {
+// HTTP handler for updating the node address
+func updateNodeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Read the request body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusInternalServerError)
+	var newNodeAddress string
+	if err := json.NewDecoder(r.Body).Decode(&newNodeAddress); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 
-	// Unmarshal the JSON payload into a struct
-	var payload WebhookPayload
-	err = json.Unmarshal(body, &payload)
-	if err != nil {
-		http.Error(w, "Error decoding JSON payload", http.StatusBadRequest)
-		return
-	}
+	// Update the node address
+	nodeMu.Lock()
+	nodeAddress = newNodeAddress
+	nodeMu.Unlock()
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	// Update the latest event data
-	latestEventData = payload
-	renderIndex(w, "index.html", latestEventData)
+	w.WriteHeader(http.StatusOK)
 }
 
-func startSnek() {
-	cmd := exec.Command("snek",
-		"-input-chainsync-address", "m2:6002",
-		"-filter-type", "chainsync.block",
-		"-output", "webhook",
-		"-output-webhook-url", "http://localhost:42069/webhook")
-
-	err := cmd.Start()
-	if err != nil {
-		fmt.Println("Error starting snek:", err)
-		return
-	}
-
-	fmt.Println("Snek started successfully. PID:", cmd.Process.Pid)
+type BlockEvent struct {
+	Type      string                 `json:"type"`
+	Timestamp string                 `json:"timestamp"`
+	Context   chainsync.BlockContext `json:"context"`
+	Payload   chainsync.BlockEvent   `json:"payload"`
 }
 
-func main() {
-	// Start Snek asynchronously
-	go startSnek()
+// Define the WebSocket connection upgrader
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
-	// Set up the Gorilla Mux router for the main server on port 8080
-	mainRouter := mux.NewRouter()
-	mainRouter.HandleFunc("/", HomeHandler).Methods("GET") // Handle root URL
-	mainRouter.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
-	mainRouter.HandleFunc("/webhook_data", WebhookDataHandler).Methods("GET") // New endpoint for webhook_data
+// Maintain a map of connected WebSocket clients
+var clients = make(map[*websocket.Conn]bool)
+var clientsMu sync.Mutex
 
-	// Start the main HTTP server on port 8080
-	mainPort := 8080
-	mainAddr := fmt.Sprintf(":%v", mainPort)
-	fmt.Printf("HTML server running on port %v...\n", mainPort)
+// Channel to broadcast block events to connected clients
+var events = make(chan BlockEvent)
 
+// Indexer struct to manage the Snek pipeline and block events
+type Indexer struct {
+	pipeline   *pipeline.Pipeline
+	blockEvent BlockEvent
+}
+
+// Singleton instance of the Indexer
+var globalIndexer = &Indexer{}
+
+// WebSocket handler for broadcasting block events to connected clients
+func wsHandler(w http.ResponseWriter, r *http.Request) {
+	// Upgrade the HTTP connection to a WebSocket connection
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer conn.Close()
+
+	// Add the new client to the clients map
+	clientsMu.Lock()
+	clients[conn] = true
+	clientsMu.Unlock()
+
+	for {
+		select {
+		// Wait for a new block event to be sent to the events channel
+		case blockEvent := <-events:
+			// Serialize the block event to JSON
+			message, err := json.Marshal(blockEvent)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			// Iterate over connected clients and send the message
+			clientsMu.Lock()
+			for client := range clients {
+				err := client.WriteMessage(websocket.TextMessage, message)
+				if err != nil {
+					log.Println(err)
+					client.Close()
+					delete(clients, client)
+				}
+			}
+			clientsMu.Unlock()
+		}
+	}
+}
+
+
+var nodeAddress = "backbone.cardano-mainnet.iohk.io:3001"
+var node = chainsync.WithAddress(nodeAddress)
+// Options for the ChainSync input
+var inputOpts = []chainsync.ChainSyncOptionFunc{
+	node,
+	chainsync.WithNetworkMagic(764824073),
+	chainsync.WithIntersectTip(true),
+}
+
+// Start the Snek pipeline and handle block events
+func (i *Indexer) Start() error {
+	// Create a new pipeline
+	i.pipeline = pipeline.New()
+
+	// Configure ChainSync input
+	input_chainsync := chainsync.New(inputOpts...)
+	i.pipeline.AddInput(input_chainsync)
+
+	// Configure filter to handle only block events
+	filterEvent := filter_event.New(filter_event.WithTypes([]string{"chainsync.block"}))
+	i.pipeline.AddFilter(filterEvent)
+
+	// Configure embedded output with callback function
+	output := output_embedded.New(output_embedded.WithCallbackFunc(i.handleEvent))
+	i.pipeline.AddOutput(output)
+
+	// Start the pipeline
+	if err := i.pipeline.Start(); err != nil {
+		log.Fatalf("failed to start pipeline: %s\n", err)
+	}
+
+	// Start error handler in a goroutine
 	go func() {
-		err := http.ListenAndServe(mainAddr, mainRouter)
-		if err != nil {
-			fmt.Println("Error starting main HTTP server:", err)
+		err, ok := <-i.pipeline.ErrorChan()
+		if ok {
+			log.Fatalf("pipeline failed: %s\n", err)
 		}
 	}()
 
-	// Set up the Gorilla Mux router for the webhook server on port 42069
-	webhookRouter := mux.NewRouter()
-	webhookRouter.HandleFunc("/webhook", handleWebhook).Methods(http.MethodPost)
+	return nil
+}
 
-	// Start the webhook HTTP server on port 42069
-	webhookPort := 42069
-	webhookAddr := fmt.Sprintf(":%v", webhookPort)
-	fmt.Printf("Webhook server running on port %v...\n", webhookPort)
-
-	err := http.ListenAndServe(webhookAddr, webhookRouter)
+// Handle block events received from the Snek pipeline
+func (i *Indexer) handleEvent(event event.Event) error {
+	// Marshal the event to JSON
+	data, err := json.Marshal(event)
 	if err != nil {
-		fmt.Println("Error starting webhook HTTP server:", err)
+		return err
 	}
+
+	// Unmarshal JSON data into BlockEvent struct
+	var blockEvent BlockEvent
+	err = json.Unmarshal(data, &blockEvent)
+	if err != nil {
+		return err
+	}
+
+	// Format the timestamp into a human-readable form
+	parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
+	if err == nil {
+		blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+	}
+
+	// Update the blockEvent field in the Indexer
+	i.blockEvent = blockEvent
+
+	// Print the block event struct to the console
+	fmt.Printf("Received BlockEvent: %+v\n", blockEvent)
+
+	// Send the block event to the WebSocket clients
+	events <- blockEvent
+
+	return nil
+}
+
+// Restart the Snek pipeline with the new node address
+func (i *Indexer) Restart() {
+	// Stop the current pipeline
+	if err := i.pipeline.Stop(); err != nil {
+		log.Fatalf("failed to stop pipeline: %s\n", err)
+	}
+
+	// Start a new pipeline with the updated node address
+	if err := i.Start(); err != nil {
+		log.Fatalf("failed to start pipeline: %s\n", err)
+	}
+}
+
+// HTTP handler for updating the node address
+func updateNodeAddressHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var newNodeAddress string
+	if err := json.NewDecoder(r.Body).Decode(&newNodeAddress); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// Update the node address
+	nodeMu.Lock()
+	nodeAddress = newNodeAddress
+	nodeMu.Unlock()
+
+	// Send a JSON response with the updated node address
+	response := struct {
+		NodeAddress string `json:"nodeAddress"`
+	}{
+		NodeAddress: nodeAddress,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// Main function to start the Snek pipeline and serve HTTP requests
+func main() {
+
+	// Start the Snek pipeline
+	if err := globalIndexer.Start(); err != nil {
+		log.Fatalf("failed to start snek: %s", err)
+	}
+
+	// Define HTTP handlers
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	http.HandleFunc("/", handler)
+	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/updateNodeAddress", updateNodeAddressHandler)
+
+
+	// Start the HTTP server on port 8080
+	http.ListenAndServe(":8080", nil)
 }

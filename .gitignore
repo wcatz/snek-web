@@ -1,1 +1,56 @@
-/tmp
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ignore go generate files
+_generate/
+
+# Ignore Go binary and object files
+*.o
+*.a
+
+# Ignore the build output directory
+/tmp/
+/build/
+
+# Ignore Tailwind CSS build output
+/static/css/output.min.css
+
+# Ignore logs
+/log/
+
+# Ignore macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Ignore project-specific generated files
+/assets/gen/
+
+# Ignore any files/directories created by your text editor or IDE
+.vscode/
+.idea/
+
+# Ignore temporary files
+*.tmp
+*.bak
+*.swp
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
