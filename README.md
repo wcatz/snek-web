@@ -4,7 +4,7 @@ Get block information in realtime from IOG's public relay. Or point it to one of
 
 ## To run just
 
-clone repo and cd into it and run
+clone repo and cd into it and..
 
 go mod tidy
 
