@@ -10,7 +10,7 @@ go mod tidy
 
 go run main.go
 
-and visit [http:localhost:8080](http:localhost:8080)
+and visit [http://localhost:8080](http://localhost:8080)
 
 ## develop
 
