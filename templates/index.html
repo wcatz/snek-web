@@ -11,10 +11,9 @@
 
   <body class="bg-gradient-to-l from-purple-900 to-purple-700">
     <div class="p-10">
-      <div
-        class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-yellow-600"
+      <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900"
       >
-        <p class="text-sm font-medium leading-6 text-white mb-2">Snek on: {{ .NodeAddress }}</p>
+        <p class="text-sm font-medium leading-6 text-white mb-4">Snek on: {{ .NodeAddress }}</p>
         <div class="flex-1 overflow-auto" id="messages-container">
           <!-- Dynamic message blocks will be inserted here -->
         </div>
@@ -44,7 +43,7 @@
           Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
           Transaction Count: ${blockEvent.payload.transactionCount}
         </pre>
-        <div class="flex justify-center gap-1">
+        <div class="flex justify-center gap-1 mb-8">
           <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
             Copy Pool
           </button>

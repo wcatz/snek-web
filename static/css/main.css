@@ -6,6 +6,13 @@
     word-wrap: break-word;
 }
 
-.fade-in {
-    animation: fadeIn 2s ease;
-}
+.message-block {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-in-out forwards;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }

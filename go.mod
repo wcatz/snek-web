@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/blinklabs-io/snek v0.15.0
-	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.1
 )
 
