@@ -2,16 +2,15 @@
 
 Get block information in realtime from IOG's public relay. Or point it to one of your own.
 
-clone repo and cd into it and run
+## To run just
 
-## To run just do
+clone repo and cd into it and run
 
 go mod tidy
 
 go run main.go
 
 and visit [http:localhost:8080](http:localhost:8080)
-
 
 ## develop
 
