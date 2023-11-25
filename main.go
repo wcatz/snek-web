@@ -20,12 +20,10 @@ import (
 
 // HTML template
 var templates *template.Template
-
 // Mutex to synchronize access to the node address
 var nodeMu sync.Mutex
-
 // Node address as a string
-var nodeAddress string
+//var nodeAddress string
 
 // Initialize the HTML templates
 func init() {
@@ -143,9 +141,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// I want this address for the frontend
-var node = chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001")
 
+var nodeAddress = "backbone.cardano-mainnet.iohk.io:3001"
+var node = chainsync.WithAddress(nodeAddress)
 // Options for the ChainSync input
 var inputOpts = []chainsync.ChainSyncOptionFunc{
 	node,
@@ -219,10 +217,53 @@ func (i *Indexer) handleEvent(event event.Event) error {
 	return nil
 }
 
+// Restart the Snek pipeline with the new node address
+func (i *Indexer) Restart() {
+	// Stop the current pipeline
+	if err := i.pipeline.Stop(); err != nil {
+		log.Fatalf("failed to stop pipeline: %s\n", err)
+	}
+
+	// Start a new pipeline with the updated node address
+	if err := i.Start(); err != nil {
+		log.Fatalf("failed to start pipeline: %s\n", err)
+	}
+}
+
+// HTTP handler for updating the node address
+func updateNodeAddressHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var newNodeAddress string
+	if err := json.NewDecoder(r.Body).Decode(&newNodeAddress); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// Update the node address
+	nodeMu.Lock()
+	nodeAddress = newNodeAddress
+	nodeMu.Unlock()
+
+	// Send a JSON response with the updated node address
+	response := struct {
+		NodeAddress string `json:"nodeAddress"`
+	}{
+		NodeAddress: nodeAddress,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 // Main function to start the Snek pipeline and serve HTTP requests
 func main() {
-	// Define initial node address
-	nodeAddress = "backbone.cardano-mainnet.iohk.io:3001"
 
 	// Start the Snek pipeline
 	if err := globalIndexer.Start(); err != nil {
@@ -233,6 +274,8 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/updateNodeAddress", updateNodeAddressHandler)
+
 
 	// Start the HTTP server on port 8080
 	http.ListenAndServe(":8080", nil)
