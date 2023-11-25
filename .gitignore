@@ -19,9 +19,6 @@ _generate/
 /tmp/
 /build/
 
-# Ignore Tailwind CSS build output
-/static/css/output.min.css
-
 # Ignore logs
 /log/
 
