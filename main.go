@@ -21,38 +21,63 @@ import (
 // HTML template
 var templates *template.Template
 
+// Mutex to synchronize access to the node address
+var nodeMu sync.Mutex
+
+// Node address as a string
+var nodeAddress string
+
 // Initialize the HTML templates
 func init() {
 	templatesPath := filepath.Join(".", "templates", "*.html")
 	templates = template.Must(template.ParseGlob(templatesPath))
 }
 
+// TemplateData holds data for the HTML template
+type TemplateData struct {
+	NodeAddress string
+}
+
 // HTTP handler for rendering the HTML page
 func handler(w http.ResponseWriter, r *http.Request) {
-	// No need to create a BlockEvent here; it will be populated when a new event occurs.
+	// Create an instance of TemplateData with the current node address
+	node := TemplateData{
+		NodeAddress: nodeAddress,
+	}
 
 	// Pass the TemplateData to the template
-	if err := templates.ExecuteTemplate(w, "index.html", nil); err != nil {
+	if err := templates.ExecuteTemplate(w, "index.html", node); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-// BlockEvent struct representing the structure of a block event
+// HTTP handler for updating the node address
+func updateNodeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var newNodeAddress string
+	if err := json.NewDecoder(r.Body).Decode(&newNodeAddress); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// Update the node address
+	nodeMu.Lock()
+	nodeAddress = newNodeAddress
+	nodeMu.Unlock()
+
+	w.WriteHeader(http.StatusOK)
+}
+
 type BlockEvent struct {
-	Type      string `json:"type"`
-	Timestamp string `json:"timestamp"`
-	Context   struct {
-		BlockNumber  int `json:"blockNumber"`
-		SlotNumber   int `json:"slotNumber"`
-		NetworkMagic int `json:"networkMagic"`
-	} `json:"context"`
-	Payload struct {
-		BlockBodySize    int    `json:"blockBodySize"`
-		IssuerVkey       string `json:"issuerVkey"`
-		BlockHash        string `json:"blockHash"`
-		TransactionCount int    `json:"transactionCount"`
-	} `json:"payload"`
+	Type      string                 `json:"type"`
+	Timestamp string                 `json:"timestamp"`
+	Context   chainsync.BlockContext `json:"context"`
+	Payload   chainsync.BlockEvent   `json:"payload"`
 }
 
 // Define the WebSocket connection upgrader
@@ -118,7 +143,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Declare a temporary variable to capture the result of the function call
+// I want this address for the frontend
 var node = chainsync.WithAddress("backbone.cardano-mainnet.iohk.io:3001")
 
 // Options for the ChainSync input
@@ -127,6 +152,7 @@ var inputOpts = []chainsync.ChainSyncOptionFunc{
 	chainsync.WithNetworkMagic(764824073),
 	chainsync.WithIntersectTip(true),
 }
+
 // Start the Snek pipeline and handle block events
 func (i *Indexer) Start() error {
 	// Create a new pipeline
@@ -195,16 +221,19 @@ func (i *Indexer) handleEvent(event event.Event) error {
 
 // Main function to start the Snek pipeline and serve HTTP requests
 func main() {
+	// Define initial node address
+	nodeAddress = "backbone.cardano-mainnet.iohk.io:3001"
+
 	// Start the Snek pipeline
 	if err := globalIndexer.Start(); err != nil {
 		log.Fatalf("failed to start snek: %s", err)
 	}
 
 	// Define HTTP handlers
-
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/updateNode", updateNodeHandler)
 
 	// Start the HTTP server on port 8080
 	http.ListenAndServe(":8080", nil)
