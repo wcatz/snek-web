@@ -17,7 +17,7 @@
       <p class="text-lg font-medium text-center leading-6 text-white my-4">
         Connected to {{ .NodeAddress }}
       </p>
-      <div class="mx-auto text-center px-1">
+      <div class="mx-auto text-center px-3">
         <input
           type="text"
           id="nodeAddressInput"
@@ -61,33 +61,66 @@
 
           if (slotsDiff < 60) {
             // If less than 60 seconds, display only seconds
-            timeDifference = `${slotsDiff} secondssss`;
+            timeDifference = `${slotsDiff} Ssecondsss`;
           } else {
             // If more than 60 seconds, convert to minutes and seconds
             const minutes = Math.floor(slotsDiff / 60);
             const remainingSeconds = slotsDiff % 60;
-            timeDifference = `Time between blocks: ${minutes} minutes ${remainingSeconds} seconds`;
+            timeDifference = `${minutes} Minutesss ${remainingSeconds} Ssecondssss`;
           }
         }
+        // Convert block size to kilobytes
+        const blockBodySize = blockEvent.payload.blockBodySize;
+        const blockBodySizeKB = blockBodySize / 1024;
+
+        // Full block size in kilobytes
+        const fullBlockSize = 90112;
+
+        // Calculate percentage full based on kilobytes
+        const percentageFull = (blockBodySizeKB / (fullBlockSize / 1024)) * 100;
+
+        // Print percentage full to the client console
+        console.log(`Block Size: ${blockBodySizeKB.toFixed(2)} KB`);
+        console.log(`Percentage Full: ${percentageFull.toFixed(2)}%`);
 
         // Populate the new div with content
         newDiv.innerHTML = `
 <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
   <pre class="whitespace-pre-line text-green-600 mx-auto">
-    <span class="text-blue-400">Type:</span> ${blockEvent.type}
-    <span class="text-blue-400">Timestamp:</span> ${blockEvent.timestamp}
-    <span class="text-blue-400">Block Number:</span> ${blockEvent.context.blockNumber}
-    <span class="text-blue-400">Slot Number:</span> ${blockEvent.context.slotNumber}
-    <span class="text-blue-400">Block Size:</span> ${blockEvent.payload.blockBodySize} bytes
-    <span class="text-blue-400">Pool:</span> <span class="whitespace-pre-line text-wrap" id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
-    <span class="text-blue-400">Block Hash:</span> <span class="whitespace-pre-line text-wrap" id="blockHash">${blockEvent.payload.blockHash}</span>
-    <span class="text-blue-400">Transaction Count:</span> ${blockEvent.payload.transactionCount}
+    <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
+      blockEvent.type
+    }
+    <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
+      blockEvent.timestamp
+    }
+    <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${
+      blockEvent.context.blockNumber
+    }
+    <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${
+      blockEvent.context.slotNumber
+    }
+    <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
+      2
+    )} KB, ${percentageFull.toFixed(2)}% full
+    <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" id="issuerVkey">${
+      blockEvent.payload.issuerVkey
+    }</span>
+    <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" id="blockHash">${
+      blockEvent.payload.blockHash
+    }</span>
+    <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${
+      blockEvent.payload.transactionCount
+    }
   </pre>
   <div class="flex justify-center gap-1 mb-2">
-    <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-blue-400 hover:text-blue-500 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-blue-600">
+    <button onclick="copyToClipboard('${
+      newDiv.id
+    }', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-blue-400 hover:text-blue-500 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-blue-600">
       Copy Pool
     </button>
-    <button onclick="copyToClipboard('${newDiv.id}', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-blue-400 hover:text-blue-500 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-blue-600">
+    <button onclick="copyToClipboard('${
+      newDiv.id
+    }', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-blue-400 hover:text-blue-500 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-blue-600">
       Copy Hash
     </button>
   </div>
