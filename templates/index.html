@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
   </head>
 
-  <body class="bg-gradient-to-r from-blue-900 to-blue-700">
+  <body class="min-h-screen bg-gradient-radial from-blue-700 via-blue-800 to-blue-950 to-black">
     <div class="mx-auto sm:px-6 lg:px-8">
       <p class="text-lg font-medium text-center leading-6 text-gray-400 my-4">
         Connected to {{ .NodeAddress }}
@@ -35,7 +35,7 @@
         </button>
       </div>
 
-      <div id="messages-container" class="overflow-auto">
+      <div id="messages-container" class="overflow-auto px-1">
         <!-- Dynamic message blocks will be inserted here -->
       </div>
     </div>
@@ -78,8 +78,8 @@
     Block Number: ${blockEvent.context.blockNumber}
     Slot Number: ${blockEvent.context.slotNumber}
     Block Size: ${blockEvent.payload.blockBodySize} bytes
-    Pool: <span class="whitespace-pre-line" id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
-    Block Hash: <span class="whitespace-pre-line" id="blockHash">${blockEvent.payload.blockHash}</span>
+    Pool: <span class="whitespace-pre-line text-wrap" id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
+    Block Hash: <span class="whitespace-pre-line text-wrap" id="blockHash">${blockEvent.payload.blockHash}</span>
     Transaction Count: ${blockEvent.payload.transactionCount}
   </pre>
   <div class="flex justify-center gap-1 mb-8">
@@ -91,7 +91,7 @@
     </button>
   </div>
 </div>
-<div class="text-center text-white">${timeDifference}</div>
+<div class="text-center py-1 text-white">${timeDifference}</div>
 `;
 
         // Update the previous slot number for the next message
