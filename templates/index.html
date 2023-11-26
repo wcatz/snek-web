@@ -4,23 +4,42 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebSocket Example</title>
+    <title>Web Snek</title>
     <link rel="stylesheet" href="/static/css/output.min.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
   </head>
 
   <body class="bg-gradient-to-l from-purple-900 to-purple-700">
     <div class="p-10">
-      <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900"
-      >
-        <p class="text-sm font-medium leading-6 text-white mb-4">Snek on: {{ .NodeAddress }}</p>
-        <div class="flex-1 overflow-auto" id="messages-container">
+      <div class="mb-4">
+        <input
+          type="text"
+          id="nodeAddressInput"
+          onfocus="this.select();"
+          class="bg-gray-400 text-white py-2 px-4 w-1/4 rounded-lg shadow-lg"
+          onkeydown="if(event.key==='Enter') updateNodeAddress();"
+        />
+        <button
+          onclick="updateNodeAddress()"
+          class="mt-2 border border-white hover:border-gray-400 text-white hover:text-gray-400 py-1 px-2 rounded focus:outline-white focus:border-gray-400 active:border-gray-400 active:text-gray-400"
+        >
+          Update Node Address
+        </button>
+        <p class="text-sm font-medium leading-6 text-white my-4">
+          Snek on: {{ .NodeAddress }}
+        </p>
+      </div>
+      <div id="messages-container" class="">
+        <div class="flex-1 overflow-auto" id="">
           <!-- Dynamic message blocks will be inserted here -->
         </div>
       </div>
     </div>
 
     <script>
+      // Keep track of the previous slot number
+      let prevSlotNumber;
       // Event handler for incoming messages
       function handleWebSocketMessage(event) {
         // Parse the JSON message
@@ -31,27 +50,49 @@
         newDiv.classList.add("message-block");
         newDiv.id = "message-" + new Date().getTime(); // Unique ID based on timestamp
 
+        // Calculate time difference between consecutive messages based on slot number
+        let timeDifference = "";
+        if (prevSlotNumber !== undefined) {
+          const slotsDiff = blockEvent.context.slotNumber - prevSlotNumber;
+
+          if (slotsDiff < 60) {
+            // If less than 60 seconds, display only seconds
+            timeDifference = `Time between blocks: ${slotsDiff} seconds`;
+          } else {
+            // If more than 60 seconds, convert to minutes and seconds
+            const minutes = Math.floor(slotsDiff / 60);
+            const remainingSeconds = slotsDiff % 60;
+            timeDifference = `Time between blocks: ${minutes} minutes ${remainingSeconds} seconds`;
+          }
+        }
+
         // Populate the new div with content
         newDiv.innerHTML = `
-        <pre class="text-green-600">
-          Type: ${blockEvent.type}
-          Timestamp: ${blockEvent.timestamp}
-          Block Number: ${blockEvent.context.blockNumber}
-          Slot Number: ${blockEvent.context.slotNumber}
-          Block Size: ${blockEvent.payload.blockBodySize} bytes
-          Pool: <span id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
-          Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
-          Transaction Count: ${blockEvent.payload.transactionCount}
-        </pre>
-        <div class="flex justify-center gap-1 mb-8">
-          <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
-            Copy Pool
-          </button>
-          <button onclick="copyToClipboard('${newDiv.id}', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
-            Copy Hash
-          </button>
-        </div>
-      `;
+<div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900">
+  <pre class="text-green-600">
+    Type: ${blockEvent.type}
+    Timestamp: ${blockEvent.timestamp}
+    Block Number: ${blockEvent.context.blockNumber}
+    Slot Number: ${blockEvent.context.slotNumber}
+    Block Size: ${blockEvent.payload.blockBodySize} bytes
+    Pool: <span id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
+    Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
+    Transaction Count: ${blockEvent.payload.transactionCount}
+  </pre>
+  <div class="flex justify-center gap-1 mb-8">
+    <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
+      Copy Pool
+    </button>
+    <button onclick="copyToClipboard('${newDiv.id}', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
+      Copy Hash
+    </button>
+  </div>
+</div>
+<div class="text-center text-white">${timeDifference}</div>
+`;
+
+        // Update the previous slot number for the next message
+        prevSlotNumber = blockEvent.context.slotNumber;
 
         document
           .getElementById("messages-container")
@@ -82,6 +123,13 @@
       // Event handler for incoming messages
       socket.addEventListener("message", handleWebSocketMessage);
 
+      socket.addEventListener("message", function (event) {
+        if (event.data === "refresh") {
+          window.location.reload();
+          return;
+        }
+      });
+
       function copyToClipboard(divId, property) {
         const element = document.getElementById(divId);
         const propertySpan = element.querySelector(`span#${property}`);
@@ -104,6 +152,38 @@
           propertySpan.classList.remove("text-green-300");
         }, 500);
       }
+      function updateNodeAddress() {
+        var newNodeAddress = document.getElementById("nodeAddressInput").value;
+
+        fetch("/updateNodeAddress", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newNodeAddress),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Node address updated:", data);
+          })
+          .catch((error) => {
+            console.error("Error updating node address:", error);
+          });
+      }
+      // Fetch the current node address on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("/getNodeAddress")
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.nodeAddress) {
+              document.getElementById("nodeAddressInput").value =
+                data.nodeAddress;
+            }
+          })
+          .catch((error) =>
+            console.error("Error fetching node address:", error)
+          );
+      });
     </script>
   </body>
 </html>
