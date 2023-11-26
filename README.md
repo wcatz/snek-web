@@ -2,6 +2,7 @@
 
 Get block information in realtime from IOG's public relay. Or point it to one of your own.
 
+
 First off you need Go [https://go.dev/doc/install](https://go.dev/doc/install)
 
 ## To run just
@@ -14,7 +15,9 @@ go run main.go
 
 and visit [http://localhost:8080](http://localhost:8080)
 
+
 ## Develop
+
 
 Requires standalone Tailwindcss binary. Follow the instructions. Make it executable and put it in your $PATH
 
@@ -27,3 +30,4 @@ Then you can cd into the project folder and run..
 tailwindcss -m -i static/css/main.css -o static/css/output.min.css --watch
 
 To watch and restart go on changes you can use [Air](https://github.com/cosmtrek/air) in a second terminal.
+
