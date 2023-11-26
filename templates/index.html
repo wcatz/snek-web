@@ -4,36 +4,39 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web Snek</title>
+    <title>Cardano Block Watch</title>
     <link rel="stylesheet" href="/static/css/output.min.css" />
     <script src="https://unpkg.com/htmx.org@1.9.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
   </head>
 
-  <body class="bg-gradient-to-l from-purple-900 to-purple-700">
-    <div class="p-10">
-      <div class="mb-4">
+  <body class="bg-gradient-to-r from-blue-900 to-blue-700">
+    <div class="mx-auto sm:px-6 lg:px-8">
+      <p class="text-lg font-medium text-center leading-6 text-gray-400 my-4">
+        Connected to {{ .NodeAddress }}
+      </p>
+      <div class="mx-auto text-center px-1">
         <input
-          type="text"
-          id="nodeAddressInput"
-          onfocus="this.select();"
-          class="bg-gray-400 text-white py-2 px-4 w-1/4 rounded-lg shadow-lg"
-          onkeydown="if(event.key==='Enter') updateNodeAddress();"
-        />
+        type="text"
+        id="nodeAddressInput"
+        onfocus="this.select();"
+        class="bg-gray-400 text-white text-lg text-center py-2 px-2 lg:w-1/3 md:w-2/3 w-full rounded-lg shadow-lg"
+        onkeydown="if(event.key==='Enter') updateNodeAddress();"
+        autocomplete="web-snek"
+      />
+      
+      </div>
+      <div class="mx-auto text-center">
         <button
           onclick="updateNodeAddress()"
-          class="mt-2 border border-white hover:border-gray-400 text-white hover:text-gray-400 py-1 px-2 rounded focus:outline-white focus:border-gray-400 active:border-gray-400 active:text-gray-400"
+          class="m-4 border border-gray-400 hover:border-gray-300 text-gray-400 hover:text-gray-300 py-1 px-2 rounded focus:outline-gray-300 focus:border-gray-300 active:border-gray-100 active:text-gray-100"
         >
           Update Node Address
         </button>
-        <p class="text-sm font-medium leading-6 text-white my-4">
-          Snek on: {{ .NodeAddress }}
-        </p>
       </div>
-      <div id="messages-container" class="">
-        <div class="flex-1 overflow-auto" id="">
-          <!-- Dynamic message blocks will be inserted here -->
-        </div>
+
+      <div id="messages-container" class="overflow-auto">
+        <!-- Dynamic message blocks will be inserted here -->
       </div>
     </div>
 
@@ -68,15 +71,15 @@
 
         // Populate the new div with content
         newDiv.innerHTML = `
-<div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900">
-  <pre class="text-green-600">
+<div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg border-2 border-blue-500">
+  <pre class="whitespace-pre-line text-green-600 mx-auto">
     Type: ${blockEvent.type}
     Timestamp: ${blockEvent.timestamp}
     Block Number: ${blockEvent.context.blockNumber}
     Slot Number: ${blockEvent.context.slotNumber}
     Block Size: ${blockEvent.payload.blockBodySize} bytes
-    Pool: <span id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
-    Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
+    Pool: <span class="whitespace-pre-line" id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
+    Block Hash: <span class="whitespace-pre-line" id="blockHash">${blockEvent.payload.blockHash}</span>
     Transaction Count: ${blockEvent.payload.transactionCount}
   </pre>
   <div class="flex justify-center gap-1 mb-8">
