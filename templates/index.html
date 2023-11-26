@@ -8,12 +8,21 @@
     <link rel="stylesheet" href="/static/css/output.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
   </head>
+<div class="update-node-address flex items-center">
+    <input type="text" id="nodeAddressInput" 
+           class="bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-700 rounded-l-full py-2 px-4 appearance-none leading-normal"
+           placeholder="Enter new node address" />
 
+    <button onclick="updateNodeAddress()"
+            class="bg-white hover:bg-white-100 text-black font-bold py-2 px-4 rounded-r-full ml-2">
+        Update Node Address
+    </button>
+</div>
   <body class="bg-gradient-to-l from-purple-900 to-purple-700">
     <div class="p-10">
       <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900"
       >
-        <p class="text-sm font-medium leading-6 text-white mb-4">Snek on: {{ .NodeAddress }}</p>
+        <p class="text-sm font-medium leading-6 text-white mb-4">Snek on Host: {{ .NodeAddress }}</p>
         <div class="flex-1 overflow-auto" id="messages-container">
           <!-- Dynamic message blocks will be inserted here -->
         </div>
@@ -82,6 +91,13 @@
       // Event handler for incoming messages
       socket.addEventListener("message", handleWebSocketMessage);
 
+      socket.addEventListener("message", function(event) {
+        if (event.data === "refresh") {
+          window.location.reload();
+          return;
+        }
+      });
+
       function copyToClipboard(divId, property) {
         const element = document.getElementById(divId);
         const propertySpan = element.querySelector(`span#${property}`);
@@ -104,6 +120,35 @@
           propertySpan.classList.remove("text-green-300");
         }, 500);
       }
+      function updateNodeAddress() {
+        var newNodeAddress = document.getElementById("nodeAddressInput").value;
+
+        fetch('/updateNodeAddress', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newNodeAddress),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Node address updated:', data);
+        })
+        .catch((error) => {
+            console.error('Error updating node address:', error);
+        });
+      }
+      // Fetch the current node address on page load
+      document.addEventListener("DOMContentLoaded", function() {
+          fetch('/getNodeAddress')
+              .then(response => response.json())
+              .then(data => {
+                  if (data.nodeAddress) {
+                      document.getElementById("nodeAddressInput").value = data.nodeAddress;
+                  }
+              })
+              .catch(error => console.error('Error fetching node address:', error));
+      });
     </script>
   </body>
 </html>

@@ -20,8 +20,10 @@ import (
 
 // HTML template
 var templates *template.Template
+
 // Mutex to synchronize access to the node address
 var nodeMu sync.Mutex
+
 // Node address as a string
 //var nodeAddress string
 
@@ -40,7 +42,7 @@ type TemplateData struct {
 func handler(w http.ResponseWriter, r *http.Request) {
 	// Create an instance of TemplateData with the current node address
 	node := TemplateData{
-		NodeAddress: nodeAddress,
+		NodeAddress: globalIndexer.nodeAddress,
 	}
 
 	// Pass the TemplateData to the template
@@ -48,27 +50,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-// HTTP handler for updating the node address
-func updateNodeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var newNodeAddress string
-	if err := json.NewDecoder(r.Body).Decode(&newNodeAddress); err != nil {
-		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
-		return
-	}
-
-	// Update the node address
-	nodeMu.Lock()
-	nodeAddress = newNodeAddress
-	nodeMu.Unlock()
-
-	w.WriteHeader(http.StatusOK)
 }
 
 type BlockEvent struct {
@@ -93,12 +74,16 @@ var events = make(chan BlockEvent)
 
 // Indexer struct to manage the Snek pipeline and block events
 type Indexer struct {
-	pipeline   *pipeline.Pipeline
-	blockEvent BlockEvent
+	pipeline    *pipeline.Pipeline
+	blockEvent  BlockEvent
+	nodeAddress string
 }
 
 // Singleton instance of the Indexer
-var globalIndexer = &Indexer{}
+var globalIndexer = &Indexer{
+	nodeAddress: "backbone.cardano-mainnet.iohk.io:3001", // Default address
+
+}
 
 // WebSocket handler for broadcasting block events to connected clients
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -141,18 +126,15 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-var nodeAddress = "backbone.cardano-mainnet.iohk.io:3001"
-var node = chainsync.WithAddress(nodeAddress)
-// Options for the ChainSync input
-var inputOpts = []chainsync.ChainSyncOptionFunc{
-	node,
-	chainsync.WithNetworkMagic(764824073),
-	chainsync.WithIntersectTip(true),
-}
-
 // Start the Snek pipeline and handle block events
 func (i *Indexer) Start() error {
+	// Define node and inputOpts inside Start, using the current node address
+	node := chainsync.WithAddress(i.nodeAddress)
+	inputOpts := []chainsync.ChainSyncOptionFunc{
+		node,
+		chainsync.WithNetworkMagic(764824073),
+		chainsync.WithIntersectTip(true),
+	}
 	// Create a new pipeline
 	i.pipeline = pipeline.New()
 
@@ -170,14 +152,15 @@ func (i *Indexer) Start() error {
 
 	// Start the pipeline
 	if err := i.pipeline.Start(); err != nil {
-		log.Fatalf("failed to start pipeline: %s\n", err)
+		log.Printf("failed to start pipeline: %s\n", err)
+		return fmt.Errorf("failed to start pipeline: %w", err)
 	}
 
 	// Start error handler in a goroutine
 	go func() {
 		err, ok := <-i.pipeline.ErrorChan()
 		if ok {
-			log.Fatalf("pipeline failed: %s\n", err)
+			log.Printf("pipeline failed: %s\n", err)
 		}
 	}()
 
@@ -243,23 +226,51 @@ func updateNodeAddressHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check and update the node address
+	if newNodeAddress == "" {
+		newNodeAddress = "backbone.cardano-mainnet.iohk.io:3001" // Fallback to default
+	}
+
+	// Update the node address and restart the pipeline
+	globalIndexer.nodeAddress = newNodeAddress
+	globalIndexer.Restart()
+
 	// Update the node address
 	nodeMu.Lock()
-	nodeAddress = newNodeAddress
 	nodeMu.Unlock()
 
-	// Send a JSON response with the updated node address
+	// After updating the node address, send a message to all clients
+	clientsMu.Lock()
+	for client := range clients {
+		err := client.WriteMessage(websocket.TextMessage, []byte("refresh"))
+		if err != nil {
+			log.Println(err)
+			client.Close()
+			delete(clients, client)
+		}
+	}
+	clientsMu.Unlock()
+
+	// Restart the Snek pipeline with the new node address
+	globalIndexer.Restart()
+	fmt.Printf("Updated node address to %s\n", globalIndexer.nodeAddress)
+	// Refresh the web page
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+}
+
+func getNodeAddressHandler(w http.ResponseWriter, r *http.Request) {
+	nodeMu.Lock()
+	defer nodeMu.Unlock()
+
 	response := struct {
 		NodeAddress string `json:"nodeAddress"`
 	}{
-		NodeAddress: nodeAddress,
+		NodeAddress: globalIndexer.nodeAddress,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
+	json.NewEncoder(w).Encode(response)
 }
 
 // Main function to start the Snek pipeline and serve HTTP requests
@@ -275,8 +286,10 @@ func main() {
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/ws", wsHandler)
 	http.HandleFunc("/updateNodeAddress", updateNodeAddressHandler)
-
+	http.HandleFunc("/getNodeAddress", getNodeAddressHandler)
 
 	// Start the HTTP server on port 8080
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("failed to start HTTP server: %s", err)
+	}
 }
