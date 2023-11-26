@@ -6,23 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebSocket Example</title>
     <link rel="stylesheet" href="/static/css/output.min.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
   </head>
-<div class="update-node-address flex items-center">
-    <input type="text" id="nodeAddressInput" 
-           class="bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-700 rounded-l-full py-2 px-4 appearance-none leading-normal"
-           placeholder="Enter new node address" />
 
-    <button onclick="updateNodeAddress()"
-            class="bg-white hover:bg-white-100 text-black font-bold py-2 px-4 rounded-r-full ml-2">
-        Update Node Address
-    </button>
-</div>
   <body class="bg-gradient-to-l from-purple-900 to-purple-700">
     <div class="p-10">
-      <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900"
+      <div class="mb-4">
+        <input
+          type="text"
+          id="nodeAddressInput"
+          onfocus="this.select();"
+          class="bg-gray-400 text-white py-2 px-4 w-1/4 rounded-lg shadow-lg"
+          onkeydown="if(event.key==='Enter') updateNodeAddress();"
+        />
+        <button
+          onclick="updateNodeAddress()"
+          class="mt-2 border border-white hover:border-gray-400 text-white hover:text-gray-400 py-1 px-2 rounded focus:outline-white focus:border-gray-400 active:border-gray-400 active:text-gray-400"
+        >
+          Update Node Address
+        </button>
+      </div>
+      <div
+        class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900"
       >
-        <p class="text-sm font-medium leading-6 text-white mb-4">Snek on Host: {{ .NodeAddress }}</p>
+        <p class="text-sm font-medium leading-6 text-white mb-4">
+          Snek on: {{ .NodeAddress }}
+        </p>
         <div class="flex-1 overflow-auto" id="messages-container">
           <!-- Dynamic message blocks will be inserted here -->
         </div>
@@ -30,6 +40,9 @@
     </div>
 
     <script>
+      // Keep track of the previous message timestamp
+      let prevTimestamp;
+
       // Event handler for incoming messages
       function handleWebSocketMessage(event) {
         // Parse the JSON message
@@ -40,27 +53,40 @@
         newDiv.classList.add("message-block");
         newDiv.id = "message-" + new Date().getTime(); // Unique ID based on timestamp
 
+        // Calculate time difference between consecutive messages
+        let timeDifference = "";
+        if (prevTimestamp) {
+          const currentTimestamp = new Date(blockEvent.timestamp);
+          const prevTimestampDate = new Date(prevTimestamp);
+          const diffInSeconds = (currentTimestamp - prevTimestampDate) / 1000;
+          timeDifference = `${Number(diffInSeconds.toFixed(2))} seconds`;
+        }
+
         // Populate the new div with content
         newDiv.innerHTML = `
-        <pre class="text-green-600">
-          Type: ${blockEvent.type}
-          Timestamp: ${blockEvent.timestamp}
-          Block Number: ${blockEvent.context.blockNumber}
-          Slot Number: ${blockEvent.context.slotNumber}
-          Block Size: ${blockEvent.payload.blockBodySize} bytes
-          Pool: <span id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
-          Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
-          Transaction Count: ${blockEvent.payload.transactionCount}
-        </pre>
-        <div class="flex justify-center gap-1 mb-8">
-          <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
-            Copy Pool
-          </button>
-          <button onclick="copyToClipboard('${newDiv.id}', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
-            Copy Hash
-          </button>
-        </div>
-      `;
+    <pre class="text-green-600">
+      Type: ${blockEvent.type}
+      Timestamp: ${blockEvent.timestamp}
+      Block Number: ${blockEvent.context.blockNumber}
+      Slot Number: ${blockEvent.context.slotNumber}
+      Block Size: ${blockEvent.payload.blockBodySize} bytes
+      Pool: <span id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
+      Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
+      Transaction Count: ${blockEvent.payload.transactionCount}
+    </pre>
+    <div class="flex justify-center gap-1 mb-8">
+      <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
+        Copy Pool
+      </button>
+      <button onclick="copyToClipboard('${newDiv.id}', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
+        Copy Hash
+      </button>
+    </div>
+    <div class="text-center text-green-700">${timeDifference}</div>
+  `;
+
+        // Update the previous timestamp for the next message
+        prevTimestamp = blockEvent.timestamp;
 
         document
           .getElementById("messages-container")
@@ -91,7 +117,7 @@
       // Event handler for incoming messages
       socket.addEventListener("message", handleWebSocketMessage);
 
-      socket.addEventListener("message", function(event) {
+      socket.addEventListener("message", function (event) {
         if (event.data === "refresh") {
           window.location.reload();
           return;
@@ -123,31 +149,34 @@
       function updateNodeAddress() {
         var newNodeAddress = document.getElementById("nodeAddressInput").value;
 
-        fetch('/updateNodeAddress', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(newNodeAddress),
+        fetch("/updateNodeAddress", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newNodeAddress),
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Node address updated:', data);
-        })
-        .catch((error) => {
-            console.error('Error updating node address:', error);
-        });
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Node address updated:", data);
+          })
+          .catch((error) => {
+            console.error("Error updating node address:", error);
+          });
       }
       // Fetch the current node address on page load
-      document.addEventListener("DOMContentLoaded", function() {
-          fetch('/getNodeAddress')
-              .then(response => response.json())
-              .then(data => {
-                  if (data.nodeAddress) {
-                      document.getElementById("nodeAddressInput").value = data.nodeAddress;
-                  }
-              })
-              .catch(error => console.error('Error fetching node address:', error));
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("/getNodeAddress")
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.nodeAddress) {
+              document.getElementById("nodeAddressInput").value =
+                data.nodeAddress;
+            }
+          })
+          .catch((error) =>
+            console.error("Error fetching node address:", error)
+          );
       });
     </script>
   </body>
