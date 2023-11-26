@@ -54,11 +54,20 @@
         let timeDifference = "";
         if (prevSlotNumber !== undefined) {
           const slotsDiff = blockEvent.context.slotNumber - prevSlotNumber;
-          timeDifference = `Time between blocks: ${slotsDiff} seconds`;
+
+          if (slotsDiff < 60) {
+            // If less than 60 seconds, display only seconds
+            timeDifference = `Time between blocks: ${slotsDiff} seconds`;
+          } else {
+            // If more than 60 seconds, convert to minutes and seconds
+            const minutes = Math.floor(slotsDiff / 60);
+            const remainingSeconds = slotsDiff % 60;
+            timeDifference = `Time between blocks: ${minutes} minutes ${remainingSeconds} seconds`;
+          }
         }
 
-// Populate the new div with content
-newDiv.innerHTML = `
+        // Populate the new div with content
+        newDiv.innerHTML = `
 <div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900">
   <pre class="text-green-600">
     Type: ${blockEvent.type}
