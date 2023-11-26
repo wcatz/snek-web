@@ -26,23 +26,20 @@
         >
           Update Node Address
         </button>
-      </div>
-      <div
-        class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900"
-      >
-        <p class="text-sm font-medium leading-6 text-white mb-4">
+        <p class="text-sm font-medium leading-6 text-white my-4">
           Snek on: {{ .NodeAddress }}
         </p>
-        <div class="flex-1 overflow-auto" id="messages-container">
+      </div>
+      <div id="messages-container" class="">
+        <div class="flex-1 overflow-auto" id="">
           <!-- Dynamic message blocks will be inserted here -->
         </div>
       </div>
     </div>
 
     <script>
-      // Keep track of the previous message timestamp
-      let prevTimestamp;
-
+      // Keep track of the previous slot number
+      let prevSlotNumber;
       // Event handler for incoming messages
       function handleWebSocketMessage(event) {
         // Parse the JSON message
@@ -53,40 +50,40 @@
         newDiv.classList.add("message-block");
         newDiv.id = "message-" + new Date().getTime(); // Unique ID based on timestamp
 
-        // Calculate time difference between consecutive messages
+        // Calculate time difference between consecutive messages based on slot number
         let timeDifference = "";
-        if (prevTimestamp) {
-          const currentTimestamp = new Date(blockEvent.timestamp);
-          const prevTimestampDate = new Date(prevTimestamp);
-          const diffInSeconds = (currentTimestamp - prevTimestampDate) / 1000;
-          timeDifference = `${Number(diffInSeconds.toFixed(2))} seconds`;
+        if (prevSlotNumber !== undefined) {
+          const slotsDiff = blockEvent.context.slotNumber - prevSlotNumber;
+          timeDifference = `Time between blocks: ${slotsDiff} seconds`;
         }
 
-        // Populate the new div with content
-        newDiv.innerHTML = `
-    <pre class="text-green-600">
-      Type: ${blockEvent.type}
-      Timestamp: ${blockEvent.timestamp}
-      Block Number: ${blockEvent.context.blockNumber}
-      Slot Number: ${blockEvent.context.slotNumber}
-      Block Size: ${blockEvent.payload.blockBodySize} bytes
-      Pool: <span id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
-      Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
-      Transaction Count: ${blockEvent.payload.transactionCount}
-    </pre>
-    <div class="flex justify-center gap-1 mb-8">
-      <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
-        Copy Pool
-      </button>
-      <button onclick="copyToClipboard('${newDiv.id}', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
-        Copy Hash
-      </button>
-    </div>
-    <div class="text-center text-green-700">${timeDifference}</div>
-  `;
+// Populate the new div with content
+newDiv.innerHTML = `
+<div class="bg-black p-6 rounded-lg shadow-lg flex flex-col border-4 border-blue-900">
+  <pre class="text-green-600">
+    Type: ${blockEvent.type}
+    Timestamp: ${blockEvent.timestamp}
+    Block Number: ${blockEvent.context.blockNumber}
+    Slot Number: ${blockEvent.context.slotNumber}
+    Block Size: ${blockEvent.payload.blockBodySize} bytes
+    Pool: <span id="issuerVkey">${blockEvent.payload.issuerVkey}</span>
+    Block Hash: <span id="blockHash">${blockEvent.payload.blockHash}</span>
+    Transaction Count: ${blockEvent.payload.transactionCount}
+  </pre>
+  <div class="flex justify-center gap-1 mb-8">
+    <button onclick="copyToClipboard('${newDiv.id}', 'issuerVkey')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
+      Copy Pool
+    </button>
+    <button onclick="copyToClipboard('${newDiv.id}', 'blockHash')" class="copy-button mt-2 border border-green-600 hover:border-green-700 text-green-600 hover:text-green-700 py-1 px-2 rounded focus:outline-none focus:border-green-700 active:border-green-900 active:text-green-900">
+      Copy Hash
+    </button>
+  </div>
+</div>
+<div class="text-center text-white">${timeDifference}</div>
+`;
 
-        // Update the previous timestamp for the next message
-        prevTimestamp = blockEvent.timestamp;
+        // Update the previous slot number for the next message
+        prevSlotNumber = blockEvent.context.slotNumber;
 
         document
           .getElementById("messages-container")
