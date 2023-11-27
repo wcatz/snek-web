@@ -24,9 +24,6 @@ var templates *template.Template
 // Mutex to synchronize access to the node address
 var nodeMu sync.Mutex
 
-// Node address as a string
-//var nodeAddress string
-
 // Initialize the HTML templates
 func init() {
 	templatesPath := filepath.Join(".", "templates", "*.html")

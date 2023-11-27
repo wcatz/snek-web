@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 .text-wrap {
-    word-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .fade-in {
@@ -41,6 +41,12 @@
   }
 }
 
-.message-block {
-  transition-all: 1s ease-in-out;
+.offcanvas {
+  transition: transform 0.3s ease-in-out;
+  height: 66vh; /* Set the height to 33% of the viewport height */
+  transform: translateY(100%); /* Position it at the bottom off-screen */
+}
+
+.offcanvas.transform-none {
+  transform: translateY(0);
 }
