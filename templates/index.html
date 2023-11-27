@@ -187,6 +187,7 @@
 
       // Function to display BlockEvent
       function displayBlockEvent(blockEvent, container) {
+          console.log(blockEvent);
           // Example HTML content specific to BlockEvent
           container.innerHTML = `
               <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
@@ -213,7 +214,7 @@
                       <span class="text-blue-400">Timestamp:</span> ${rollbackEvent.timestamp}
                       <!-- Add more fields specific to RollbackEvent here -->
                       <span class="text-blue-400">Block Number:</span> ${rollbackEvent.payload.blockHash}
-                      <span class="text-blue-400">Slot Number:</span> ${rollbackEvent.context.slotNumber}
+                      <span class="text-blue-400">Slot Number:</span> ${rollbackEvent.payload.slotNumber}
                   </pre>
               </div>`;
       }
@@ -226,14 +227,14 @@
                   <pre class="whitespace-pre-line text-yellow-600 mx-auto">
                       <span class="text-blue-400">Type:</span> ${transactionEvent.type}
                       <span class="text-blue-400">Timestamp:</span> ${transactionEvent.timestamp}
+                      <span class="text-blue-400">Block Number:</span> ${transactionEvent.context.blockNumber}
+                      <span class="text-blue-400">Slot Number:</span> ${transactionEvent.context.slotNumber}
+                      <span class="text-blue-400">Transaction Block:</span> ${transactionEvent.payload.blockHash}
+                      <span class="text-blue-400">Transaction ID:</span> ${transactionEvent.payload.transactionCbor}
                       <!-- Add more fields specific to TransactionEvent here -->
                   </pre>
               </div>`;
       }
-
-
-
-
     </script>
   </body>
 </html>

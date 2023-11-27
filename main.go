@@ -38,6 +38,26 @@ type TemplateData struct {
 	NodeAddress string
 }
 
+type BlockEvent struct {
+	Type      string                 `json:"type"`
+	Timestamp string                 `json:"timestamp"`
+	Context   chainsync.BlockContext `json:"context"`
+	Payload   chainsync.BlockEvent   `json:"payload"`
+}
+
+type RollbackEvent struct {
+	Type      string                  `json:"type"`
+	Timestamp string                  `json:"timestamp"`
+	Payload   chainsync.RollbackEvent `json:"payload"`
+}
+
+type TransactionEvent struct {
+	Type      string                       `json:"type"`
+	Timestamp string                       `json:"timestamp"`
+	Context   chainsync.TransactionContext `json:"context"`
+	Payload   chainsync.TransactionEvent   `json:"payload"`
+}
+
 // HTTP handler for rendering the HTML page
 func handler(w http.ResponseWriter, r *http.Request) {
 	// Create an instance of TemplateData with the current node address
@@ -52,19 +72,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type BlockEvent struct {
-	Type      string                 `json:"type"`
-	Timestamp string                 `json:"timestamp"`
-	Context   chainsync.BlockContext `json:"context"`
-	Payload   chainsync.BlockEvent   `json:"payload"`
-}
-
-type RollbackEvent struct {
-	Type      string                  `json:"type"`
-	Timestamp string                  `json:"timestamp"`
-	Context   chainsync.RollbackEvent `json:"context"`
-	Payload   chainsync.RollbackEvent `json:"payload"`
-}
+// type BlockEvent struct {
+// 	Type      string                 `json:"type"`
+// 	Timestamp string                 `json:"timestamp"`
+// 	Context   chainsync.BlockContext `json:"context"`
+// 	Payload   chainsync.BlockEvent   `json:"payload"`
+// }
 
 // Define the WebSocket connection upgrader
 var upgrader = websocket.Upgrader{
@@ -77,15 +90,18 @@ var clients = make(map[*websocket.Conn]bool)
 var clientsMu sync.Mutex
 
 // Channel to broadcast block events to connected clients
-var events = make(chan BlockEvent)
+// var events = make(chan BlockEvent)
+var events = make(chan interface{})
 
 // Indexer struct to manage the Snek pipeline and block events
 type Indexer struct {
-	pipeline   *pipeline.Pipeline
-	blockEvent BlockEvent
-
-	nodeAddress string
-	eventType   string
+	pipeline         *pipeline.Pipeline
+	blockEvent       BlockEvent
+	rollbackEvent    RollbackEvent
+	transactionEvent TransactionEvent
+	nodeAddress      string
+	eventType        string
+	isRunning        bool
 }
 
 // Singleton instance of the Indexer
@@ -96,6 +112,7 @@ var globalIndexer = &Indexer{
 
 // WebSocket handler for broadcasting block events to connected clients
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -112,9 +129,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		// Wait for a new block event to be sent to the events channel
-		case blockEvent := <-events:
+		case event := <-events:
 			// Serialize the block event to JSON
-			message, err := json.Marshal(blockEvent)
+			message, err := json.Marshal(event)
 			if err != nil {
 				log.Println(err)
 				continue
@@ -174,49 +191,134 @@ func (i *Indexer) Start() error {
 		}
 	}()
 
+	i.isRunning = true
+
 	return nil
 }
 
 // Handle block events received from the Snek pipeline
 func (i *Indexer) handleEvent(event event.Event) error {
+
 	// Marshal the event to JSON
 	data, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
-
-	// Unmarshal JSON data into BlockEvent struct
-	var blockEvent BlockEvent
-	err = json.Unmarshal(data, &blockEvent)
-	if err != nil {
+	var getEvent map[string]interface{}
+	errr := json.Unmarshal(data, &getEvent)
+	if errr != nil {
 		return err
 	}
 
-	// Format the timestamp into a human-readable form
-	parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
-	if err == nil {
-		blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+	eventType, ok := getEvent["type"].(string)
+	if !ok {
+		return fmt.Errorf("failed to get event type")
 	}
 
-	// Update the currentEvent field in the Indexer
-	i.blockEvent = blockEvent
+	switch eventType {
+	case "chainsync.block":
+		var blockEvent BlockEvent
+		err := json.Unmarshal(data, &blockEvent)
+		if err != nil {
+			return err
+		}
 
-	// Print the block event struct to the console
-	fmt.Printf("Received Event: %+v\n", blockEvent)
+		// Format the timestamp into a human-readable form
+		parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
+		if err == nil {
+			blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+		}
 
-	// Send the block event to the WebSocket clients
-	events <- blockEvent
+		// Update the currentEvent field in the Indexer
+		i.blockEvent = blockEvent
+
+		// Print the block event struct to the console
+		fmt.Printf("Received Event: %+v\n", blockEvent)
+
+		// Send the block event to the WebSocket clients
+		events <- blockEvent
+	case "chainsync.rollback":
+		var rollbackEvent RollbackEvent
+		err := json.Unmarshal(data, &rollbackEvent)
+		if err != nil {
+			return err
+		}
+
+		// Format the timestamp into a human-readable form
+		parsedTime, err := time.Parse(time.RFC3339, rollbackEvent.Timestamp)
+		if err == nil {
+			rollbackEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+		}
+
+		// Update the currentEvent field in the Indexer
+		i.rollbackEvent = rollbackEvent
+
+		// Print the rollbackk event struct to the console
+		fmt.Printf("Received Event: %+v\n", rollbackEvent)
+
+		// Send the block event to the WebSocket clients
+		events <- rollbackEvent
+	case "chainsync.transaction":
+		var transactionEvent TransactionEvent
+		err := json.Unmarshal(data, &transactionEvent)
+		if err != nil {
+			return err
+		}
+
+		// Format the timestamp into a human-readable form
+		parsedTime, err := time.Parse(time.RFC3339, transactionEvent.Timestamp)
+		if err == nil {
+			transactionEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+		}
+
+		// Update the currentEvent field in the Indexer
+		i.transactionEvent = transactionEvent
+
+		// Print the transaction event struct to the console
+		fmt.Printf("Received Event: %+v\n", transactionEvent)
+
+		// Send the block event to the WebSocket clients
+		events <- transactionEvent
+	}
+
+	// // Unmarshal JSON data into BlockEvent struct
+	// var blockEvent BlockEvent
+	// err = json.Unmarshal(data, &blockEvent)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // Format the timestamp into a human-readable form
+	// parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
+	// if err == nil {
+	// 	blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+	// }
+
+	// // Update the currentEvent field in the Indexer
+	// i.blockEvent = blockEvent
+
+	// // Print the block event struct to the console
+	// fmt.Printf("Received Event: %+v\n", blockEvent)
+
+	// // Send the block event to the WebSocket clients
+	// events <- blockEvent
 
 	return nil
 }
 
 // Restart the Snek pipeline with the new node address
 func (i *Indexer) Restart() {
-	// Stop the current pipeline
-	if err := i.pipeline.Stop(); err != nil {
-		log.Fatalf("failed to stop pipeline: %s\n", err)
-	}
 
+	if i.isRunning {
+		// Stop the current pipeline
+		if err := i.pipeline.Stop(); err != nil {
+			log.Fatalf("failed to stop pipeline: %s\n", err)
+			log.Printf("failed to stop pipeline: %s\n", err)
+			// Wait for a moment to ensure pipeline is fully stopped
+			time.Sleep(time.Second)
+		}
+		i.isRunning = false
+	}
 	// Start a new pipeline with the updated node address
 	if err := i.Start(); err != nil {
 		log.Fatalf("failed to start pipeline: %s\n", err)
