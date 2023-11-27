@@ -59,6 +59,13 @@ type BlockEvent struct {
 	Payload   chainsync.BlockEvent   `json:"payload"`
 }
 
+type RollbackEvent struct {
+	Type      string                  `json:"type"`
+	Timestamp string                  `json:"timestamp"`
+	Context   chainsync.RollbackEvent `json:"context"`
+	Payload   chainsync.RollbackEvent `json:"payload"`
+}
+
 // Define the WebSocket connection upgrader
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -74,9 +81,11 @@ var events = make(chan BlockEvent)
 
 // Indexer struct to manage the Snek pipeline and block events
 type Indexer struct {
-	pipeline    *pipeline.Pipeline
-	blockEvent  BlockEvent
+	pipeline   *pipeline.Pipeline
+	blockEvent BlockEvent
+
 	nodeAddress string
+	eventType   string
 }
 
 // Singleton instance of the Indexer
@@ -143,10 +152,11 @@ func (i *Indexer) Start() error {
 	i.pipeline.AddInput(input_chainsync)
 
 	// Configure filter to handle only block events
-	filterEvent := filter_event.New(filter_event.WithTypes([]string{"chainsync.block"}))
+	// Update the event type filter based on the selection
+	filterEvent := filter_event.New(filter_event.WithTypes([]string{i.eventType}))
 	i.pipeline.AddFilter(filterEvent)
 
-	// Configure embedded output with callback function
+	// Configure zembedded output with callback function
 	output := output_embedded.New(output_embedded.WithCallbackFunc(i.handleEvent))
 	i.pipeline.AddOutput(output)
 
@@ -188,11 +198,11 @@ func (i *Indexer) handleEvent(event event.Event) error {
 		blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
 	}
 
-	// Update the blockEvent field in the Indexer
+	// Update the currentEvent field in the Indexer
 	i.blockEvent = blockEvent
 
 	// Print the block event struct to the console
-	fmt.Printf("Received BlockEvent: %+v\n", blockEvent)
+	fmt.Printf("Received Event: %+v\n", blockEvent)
 
 	// Send the block event to the WebSocket clients
 	events <- blockEvent
@@ -273,6 +283,25 @@ func getNodeAddressHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func updateEventTypeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var newEventType string
+	if err := json.NewDecoder(r.Body).Decode(&newEventType); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// Update the event type and restart the pipeline
+	globalIndexer.eventType = newEventType
+	globalIndexer.Restart()
+
+	fmt.Fprintf(w, "Event type updated to %s\n", newEventType)
+}
+
 // Main function to start the Snek pipeline and serve HTTP requests
 func main() {
 
@@ -287,6 +316,7 @@ func main() {
 	http.HandleFunc("/ws", wsHandler)
 	http.HandleFunc("/updateNodeAddress", updateNodeAddressHandler)
 	http.HandleFunc("/getNodeAddress", getNodeAddressHandler)
+	http.HandleFunc("/updateEventType", updateEventTypeHandler)
 
 	// Start the HTTP server on port 8080
 	if err := http.ListenAndServe(":8080", nil); err != nil {
