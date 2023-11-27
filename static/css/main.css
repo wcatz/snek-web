@@ -52,11 +52,7 @@
 }
 
 .form-input:focus, .form-multiselect:focus, .form-select:focus, .form-textarea:focus {
-
   --tw-ring-offset-color: #fff;
   --tw-ring-color: #67a0ff;
   border-color: #67a0ff;
-  box-shadow: var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow);
-  outline: 2px solid #0000;
-  outline-offset: 2px;
 }
