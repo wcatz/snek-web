@@ -16,6 +16,8 @@ import (
 	output_embedded "github.com/blinklabs-io/snek/output/embedded"
 	"github.com/blinklabs-io/snek/pipeline"
 	"github.com/gorilla/websocket"
+	// Import ledger package from gouroboros folder located in our directory If needed
+	// ledger "github.com/blinklabs-io/gouroboros/ledger"
 )
 
 // HTML template
@@ -51,11 +53,43 @@ type RollbackEvent struct {
 	Payload   chainsync.RollbackEvent `json:"payload"`
 }
 
+type TransactionContext struct {
+	BlockNumber     int    `json:"blockNumber"`
+	SlotNumber      int    `json:"slotNumber"`
+	TransactionHash string `json:"transactionHash"`
+	TransactionIdx  int    `json:"transactionIdx"`
+	NetworkMagic    int    `json:"networkMagic"`
+}
+
+// type Asset struct {
+// 	Name        string `json:"name"`
+// 	NameHex     string `json:"nameHex"`
+// 	Amount      int    `json:"amount"`
+// 	Fingerprint string `json:"fingerprint"`
+// 	PolicyId    string `json:"policyId"`
+// }
+
+// type Output struct {
+// 	Address string  `json:"address"`
+// 	Amount  int     `json:"amount"`
+// 	Assets  []Asset `json:"assets"`
+// }
+
+// type TransactionPayload struct {
+// 	BlockHash       string                     `json:"blockHash"`
+// 	TransactionCbor string                     `json:"transactionCbor"`
+// 	Inputs          []ledger.TransactionInput  `json:"inputs"`
+// 	Outputs         []ledger.TransactionOutput `json:"outputs"`
+// 	Metadata        map[string]interface{}     `json:"metadata"`
+// 	Fee             int                        `json:"fee"`
+// 	Ttl             int                        `json:"ttl"`
+// }
+
 type TransactionEvent struct {
-	Type      string                       `json:"type"`
-	Timestamp string                       `json:"timestamp"`
-	Context   chainsync.TransactionContext `json:"context"`
-	Payload   chainsync.TransactionEvent   `json:"payload"`
+	Type      string             `json:"type"`
+	Timestamp string             `json:"timestamp"`
+	Context   TransactionContext `json:"context"`
+	// Payload   TransactionPayload `json:"payload"`
 }
 
 // HTTP handler for rendering the HTML page
@@ -91,7 +125,7 @@ var clientsMu sync.Mutex
 
 // Channel to broadcast block events to connected clients
 // var events = make(chan BlockEvent)
-var events = make(chan interface{})
+var events = make(chan interface{}, 100)
 
 // Indexer struct to manage the Snek pipeline and block events
 type Indexer struct {
@@ -259,10 +293,15 @@ func (i *Indexer) handleEvent(event event.Event) error {
 		// Send the block event to the WebSocket clients
 		events <- rollbackEvent
 	case "chainsync.transaction":
+		fmt.Println("Received transaction event:", string(data))
+
 		var transactionEvent TransactionEvent
-		err := json.Unmarshal(data, &transactionEvent)
-		if err != nil {
-			return err
+
+		// Unmarshal tranasctionEvent to JSON
+		errr := json.Unmarshal(data, &transactionEvent)
+		if errr != nil {
+			log.Printf("error unmarshalling transaction event: %v, data: %s", errr, string(data))
+			return fmt.Errorf("error unmarshalling transaction event: %v", errr)
 		}
 
 		// Format the timestamp into a human-readable form
@@ -281,28 +320,6 @@ func (i *Indexer) handleEvent(event event.Event) error {
 		events <- transactionEvent
 	}
 
-	// // Unmarshal JSON data into BlockEvent struct
-	// var blockEvent BlockEvent
-	// err = json.Unmarshal(data, &blockEvent)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // Format the timestamp into a human-readable form
-	// parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
-	// if err == nil {
-	// 	blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
-	// }
-
-	// // Update the currentEvent field in the Indexer
-	// i.blockEvent = blockEvent
-
-	// // Print the block event struct to the console
-	// fmt.Printf("Received Event: %+v\n", blockEvent)
-
-	// // Send the block event to the WebSocket clients
-	// events <- blockEvent
-
 	return nil
 }
 
@@ -315,7 +332,7 @@ func (i *Indexer) Restart() {
 			log.Fatalf("failed to stop pipeline: %s\n", err)
 			log.Printf("failed to stop pipeline: %s\n", err)
 			// Wait for a moment to ensure pipeline is fully stopped
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 3)
 		}
 		i.isRunning = false
 	}

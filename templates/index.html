@@ -229,8 +229,7 @@
                       <span class="text-blue-400">Timestamp:</span> ${transactionEvent.timestamp}
                       <span class="text-blue-400">Block Number:</span> ${transactionEvent.context.blockNumber}
                       <span class="text-blue-400">Slot Number:</span> ${transactionEvent.context.slotNumber}
-                      <span class="text-blue-400">Transaction Block:</span> ${transactionEvent.payload.blockHash}
-                      <span class="text-blue-400">Transaction ID:</span> ${transactionEvent.payload.transactionCbor}
+                      <span class="text-blue-400">Transaction Hash:</span> ${transactionEvent.context.transactionHash}
                       <!-- Add more fields specific to TransactionEvent here -->
                   </pre>
               </div>`;
