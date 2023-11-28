@@ -17,7 +17,6 @@ import (
 	"github.com/blinklabs-io/snek/pipeline"
 	"github.com/gorilla/websocket"
 	// Import ledger package from gouroboros folder located in our directory If needed
-	// ledger "github.com/blinklabs-io/gouroboros/ledger"
 )
 
 // HTML template
@@ -61,35 +60,35 @@ type TransactionContext struct {
 	NetworkMagic    int    `json:"networkMagic"`
 }
 
-// type Asset struct {
-// 	Name        string `json:"name"`
-// 	NameHex     string `json:"nameHex"`
-// 	Amount      int    `json:"amount"`
-// 	Fingerprint string `json:"fingerprint"`
-// 	PolicyId    string `json:"policyId"`
-// }
+type Asset struct {
+	Name        string `json:"name"`
+	NameHex     string `json:"nameHex"`
+	PolicyId    string `json:"policyId"`
+	Fingerprint string `json:"fingerprint"`
+	Amount      int    `json:"amount"`
+}
 
-// type Output struct {
-// 	Address string  `json:"address"`
-// 	Amount  int     `json:"amount"`
-// 	Assets  []Asset `json:"assets"`
-// }
+type TransactionOutput struct {
+	Address string  `json:"address"`
+	Amount  int     `json:"amount"`
+	Assets  []Asset `json:"assets,omitempty"` // omitempty if assets can be absent
+}
 
-// type TransactionPayload struct {
-// 	BlockHash       string                     `json:"blockHash"`
-// 	TransactionCbor string                     `json:"transactionCbor"`
-// 	Inputs          []ledger.TransactionInput  `json:"inputs"`
-// 	Outputs         []ledger.TransactionOutput `json:"outputs"`
-// 	Metadata        map[string]interface{}     `json:"metadata"`
-// 	Fee             int                        `json:"fee"`
-// 	Ttl             int                        `json:"ttl"`
-// }
+type TransactionPayload struct {
+	BlockHash       string                 `json:"blockHash"`
+	TransactionCbor string                 `json:"transactionCbor"`
+	Inputs          []string               `json:"inputs"`
+	Outputs         []TransactionOutput    `json:"outputs"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	Fee             int                    `json:"fee"`
+	Ttl             int                    `json:"ttl"`
+}
 
 type TransactionEvent struct {
 	Type      string             `json:"type"`
 	Timestamp string             `json:"timestamp"`
 	Context   TransactionContext `json:"context"`
-	// Payload   TransactionPayload `json:"payload"`
+	Payload   TransactionPayload `json:"payload"`
 }
 
 // HTTP handler for rendering the HTML page
