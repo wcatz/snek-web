@@ -13,18 +13,20 @@
   <body
     class="min-h-screen bg-gradient-radial from-blue-700 via-blue-900 to-black"
   >
-  <!-- Touch the Snek -->
-<button
-class="relative top-4 left-1/2 transform -translate-x-1/2 bg-transparent text-white px-4 py-2 rounded"
-id="toggleButton"
->
-<img src="/static/images/snek-illustration.png" alt="Snek Menu" class="w-20 focus:outline-none" tabindex="-1">
-
-
-</button>
+    <!-- Touch the Snek -->
+    <button
+      class="relative top-4 left-1/2 transform -translate-x-1/2 bg-transparent text-white px-4 py-2 rounded"
+      id="toggleButton"
+    >
+      <img
+        src="/static/images/snek-illustration.png"
+        alt="Snek Menu"
+        class="w-20 focus:outline-none"
+        tabindex="-1"
+      />
+    </button>
     <div class="mx-auto sm:px-6 lg:px-8">
       <div class="mx-auto text-center mb-4 px-2">
-    
         <input
           type="text"
           id="nodeAddressInput"
@@ -40,6 +42,17 @@ id="toggleButton"
       </div>
     </div>
 
+    <button
+      class="hidden absolute bottom-5 right-5 bg-transparent px-4 py-2 rounded"
+      id="toTop"
+    >
+      <img
+        src="/static/images/snek-illustration.png"
+        alt="Up Snek"
+        class="w-14 focus:outline-none"
+        tabindex="-1"
+      />
+    </button>
 
     <!-- Off-canvas Menu -->
     <div
@@ -68,160 +81,206 @@ id="toggleButton"
         <div class="grid grid-cols-1 mb-6 md:grid-cols-1 lg:grid-cols-1">
           <div>
             <h1 class="text-white">Snek Skin Menu</h1>
-            </div>
+          </div>
 
           <div class="flex justify-center bg-transparent py-6">
-
             <span class="isolate inline-flex rounded-md shadow-sm">
-                <button value="chainsync.block" onclick="updateEventType('chainsync.block')" type="button" class="relative inline-flex items-center rounded-l-md bg-transparent px-3 py-2 text-sm font-semibold text-white  hover:text-gray-200 active:text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-10">Block</button>
-                <button value="chainsync.transaction" onclick="updateEventType('chainsync.transaction')" type="button" class="relative -ml-px inline-flex items-center bg-transparent px-3 py-2 text-sm font-semibold text-white ring-1  hover:text-gray-200 active:text-gray-400 ring-inset ring-gray-300 focus:z-10">Transaction</button>
-                <button value="chainsync.rollback" onclick="updateEventType('chainsync.rollback')" type="button" class="relative -ml-px inline-flex items-center rounded-r-md bg-transparent px-3 py-2 text-sm font-semibold text-white  hover:text-gray-200 active:text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-10">Rollback</button>
+              <button
+                value="chainsync.block"
+                onclick="updateEventType('chainsync.block')"
+                type="button"
+                class="relative inline-flex items-center rounded-l-md bg-transparent px-3 py-2 text-sm font-semibold text-white hover:text-gray-200 active:text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-10"
+              >
+                Block
+              </button>
+              <button
+                value="chainsync.transaction"
+                onclick="updateEventType('chainsync.transaction')"
+                type="button"
+                class="relative -ml-px inline-flex items-center bg-transparent px-3 py-2 text-sm font-semibold text-white ring-1 hover:text-gray-200 active:text-gray-400 ring-inset ring-gray-300 focus:z-10"
+              >
+                Transaction
+              </button>
+              <button
+                value="chainsync.rollback"
+                onclick="updateEventType('chainsync.rollback')"
+                type="button"
+                class="relative -ml-px inline-flex items-center rounded-r-md bg-transparent px-3 py-2 text-sm font-semibold text-white hover:text-gray-200 active:text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-10"
+              >
+                Rollback
+              </button>
             </span>
-        </div>
-          
-    
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
-          <div class="flex justify-center rounded-lg border-2 border-white bg-transparent py-6">
-            <div class="mb-2 flex items-center">
-              <!-- Checkbox -->
-              <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox rounded-lg" />
-                <span class="mx-4 text-white"></span>
-              </label>
-              <!-- Input field -->
-              <input type="text" class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none" />
-            </div>
           </div>
-    
-          <div class="flex justify-center rounded-xl border-2 border-gray-300 bg-transparent p-6">
-            <div class="mb-2 flex items-center">
-              <!-- Checkbox -->
-              <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox rounded-lg" />
-                <span class="mx-4 text-white"></span>
-              </label>
-              <!-- Input field -->
-              <input type="text" class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none" />
+
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
+            <div
+              class="flex justify-center rounded-lg border-2 border-white bg-transparent py-6"
+            >
+              <div class="mb-2 flex items-center">
+                <!-- Checkbox -->
+                <label class="inline-flex items-center">
+                  <input type="checkbox" class="form-checkbox rounded-lg" />
+                  <span class="mx-4 text-white"></span>
+                </label>
+                <!-- Input field -->
+                <input
+                  type="text"
+                  class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none"
+                />
+              </div>
             </div>
-          </div>
-          <div class="flex justify-center rounded-xl border-2 border-gray-300 bg-transparent p-6">
-            <div class="mb-2 flex items-center">
-              <!-- Checkbox -->
-              <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox rounded-lg" />
-                <span class="mx-4 text-white"></span>
-              </label>
-              <!-- Input field -->
-              <input type="text" class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none" />
+
+            <div
+              class="flex justify-center rounded-xl border-2 border-gray-300 bg-transparent p-6"
+            >
+              <div class="mb-2 flex items-center">
+                <!-- Checkbox -->
+                <label class="inline-flex items-center">
+                  <input type="checkbox" class="form-checkbox rounded-lg" />
+                  <span class="mx-4 text-white"></span>
+                </label>
+                <!-- Input field -->
+                <input
+                  type="text"
+                  class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none"
+                />
+              </div>
             </div>
-          </div>
-    
-          <div class="flex justify-center rounded-xl border-2 border-gray-300 bg-transparent p-6">
-            <div class="mb-2 flex items-center">
-              <!-- Checkbox -->
-              <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox rounded-lg" />
-                <span class="mx-4 text-white"></span>
-              </label>
-              <!-- Input field -->
-              <input type="text" class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none" />
+            <div
+              class="flex justify-center rounded-xl border-2 border-gray-300 bg-transparent p-6"
+            >
+              <div class="mb-2 flex items-center">
+                <!-- Checkbox -->
+                <label class="inline-flex items-center">
+                  <input type="checkbox" class="form-checkbox rounded-lg" />
+                  <span class="mx-4 text-white"></span>
+                </label>
+                <!-- Input field -->
+                <input
+                  type="text"
+                  class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div
+              class="flex justify-center rounded-xl border-2 border-gray-300 bg-transparent p-6"
+            >
+              <div class="mb-2 flex items-center">
+                <!-- Checkbox -->
+                <label class="inline-flex items-center">
+                  <input type="checkbox" class="form-checkbox rounded-lg" />
+                  <span class="mx-4 text-white"></span>
+                </label>
+                <!-- Input field -->
+                <input
+                  type="text"
+                  class="form-input ml-2 w-full rounded-lg border-b border-white bg-transparent text-white focus:outline-none"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-<script>
+    </div>
+  </body>
+  <script>
     // Keep track of the previous slot number
     let prevSlotNumber;
-    
+
     // Event handler for incoming messages
     function handleWebSocketMessage(event) {
-        // Parse the JSON message
-        const eventData = JSON.parse(event.data);
-  
-        // Create a new div element for each message block
-        const newDiv = document.createElement("div");
-        newDiv.classList.add("message-block");
-        newDiv.id = "message-" + new Date().getTime(); // Unique ID based on timestamp
-  
-        // Determine the type of event and format accordingly
-        switch (eventData.type) {
-            case "chainsync.block":
-            displayBlockEvent(eventData, newDiv);
-            break;
-            case "chainsync.rollback":
-            displayRollbackEvent(eventData, newDiv);
-            break;
-            case "chainsync.transaction":
-            displayTransactionEvent(eventData, newDiv);
-            break;
-            default:
-            console.log("Unknown event type:", eventData.type);
-        }
-        // Insert the new div into the messages container
-        document.getElementById("messages-container").insertBefore(newDiv, document.getElementById("messages-container").firstChild);
-    }
-  
-  // Function to calculate time difference based on slot number
-  function calculateTimeDifference(blockEvent) {
-    let timeDifference = "";
+      // Parse the JSON message
+      const eventData = JSON.parse(event.data);
 
-    // Calculate time difference between consecutive messages based on slot number
-    if (prevSlotNumber !== undefined) {
-      const slotsDiff = blockEvent.context.slotNumber - prevSlotNumber;
+      // Create a new div element for each message block
+      const newDiv = document.createElement("div");
+      newDiv.classList.add("message-block");
+      newDiv.id = "message-" + new Date().getTime(); // Unique ID based on timestamp
 
-      if (slotsDiff < 60) {
-        // If less than 60 seconds, display only seconds
-        timeDifference = `${slotsDiff} seconds`;
-      } else {
-        // If more than 60 seconds, convert to minutes and seconds
-        const minutes = Math.floor(slotsDiff / 60);
-        const remainingSeconds = slotsDiff % 60;
-        timeDifference = `${minutes} minutes ${remainingSeconds} seconds`;
+      // Determine the type of event and format accordingly
+      switch (eventData.type) {
+        case "chainsync.block":
+          displayBlockEvent(eventData, newDiv);
+          break;
+        case "chainsync.rollback":
+          displayRollbackEvent(eventData, newDiv);
+          break;
+        case "chainsync.transaction":
+          displayTransactionEvent(eventData, newDiv);
+          break;
+        default:
+          console.log("Unknown event type:", eventData.type);
       }
+      // Insert the new div into the messages container
+      document
+        .getElementById("messages-container")
+        .insertBefore(
+          newDiv,
+          document.getElementById("messages-container").firstChild
+        );
     }
 
-    return timeDifference;
-  }
-        // Create a WebSocket connection
-        const socket = new WebSocket("ws://localhost:8080/ws");
-  
-        // Event handler for when the WebSocket connection is established
-        socket.addEventListener("open", (event) => {
-          console.log("WebSocket connection established:", event);
-        });
-  
-        // Event handler for WebSocket errors
-        socket.addEventListener("error", (event) => {
-          console.error("WebSocket error:", event);
-        });
-  
-        // Event handler for WebSocket closure
-        socket.addEventListener("close", (event) => {
-          console.log("WebSocket connection closed:", event);
-        });
-  
-        // Event handler for incoming messages
-        socket.addEventListener("message", handleWebSocketMessage);
-  
-        socket.addEventListener("message", function (event) {
-          if (event.data === "refresh") {
-            window.location.reload();
-            return;
-          }
-        });
-  
-        function copyToClipboard(element, property) {
-        const propertySpan = element;
-        const tempInput = document.createElement("textarea");
-        tempInput.value = propertySpan.innerText;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand("copy");
-        document.body.removeChild(tempInput);
+    // Function to calculate time difference based on slot number
+    function calculateTimeDifference(blockEvent) {
+      let timeDifference = "";
 
-        // Highlight copy
-        propertySpan.classList.add(
+      // Calculate time difference between consecutive messages based on slot number
+      if (prevSlotNumber !== undefined) {
+        const slotsDiff = blockEvent.context.slotNumber - prevSlotNumber;
+
+        if (slotsDiff < 60) {
+          // If less than 60 seconds, display only seconds
+          timeDifference = `${slotsDiff} seconds`;
+        } else {
+          // If more than 60 seconds, convert to minutes and seconds
+          const minutes = Math.floor(slotsDiff / 60);
+          const remainingSeconds = slotsDiff % 60;
+          timeDifference = `${minutes} minutes ${remainingSeconds} seconds`;
+        }
+      }
+
+      return timeDifference;
+    }
+    // Create a WebSocket connection
+    const socket = new WebSocket("ws://localhost:8080/ws");
+
+    // Event handler for when the WebSocket connection is established
+    socket.addEventListener("open", (event) => {
+      console.log("WebSocket connection established:", event);
+    });
+
+    // Event handler for WebSocket errors
+    socket.addEventListener("error", (event) => {
+      console.error("WebSocket error:", event);
+    });
+
+    // Event handler for WebSocket closure
+    socket.addEventListener("close", (event) => {
+      console.log("WebSocket connection closed:", event);
+    });
+
+    // Event handler for incoming messages
+    socket.addEventListener("message", handleWebSocketMessage);
+
+    socket.addEventListener("message", function (event) {
+      if (event.data === "refresh") {
+        window.location.reload();
+        return;
+      }
+    });
+
+    function copyToClipboard(element, property) {
+      const propertySpan = element;
+      const tempInput = document.createElement("textarea");
+      tempInput.value = propertySpan.innerText;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
+
+      // Highlight copy
+      propertySpan.classList.add(
         "text-white",
         "transition-color",
         "duration-300"
@@ -232,131 +291,171 @@ id="toggleButton"
     }
 
     function updateNodeAddress() {
-        var newNodeAddress = document.getElementById("nodeAddressInput").value;
-  
-        fetch("/updateNodeAddress", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(newNodeAddress),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              console.log("Node address updated:", data);
-            })
-            .catch((error) => {
-              console.error("Error updating node address:", error);
-            });
+      var newNodeAddress = document.getElementById("nodeAddressInput").value;
+
+      fetch("/updateNodeAddress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newNodeAddress),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("Node address updated:", data);
+        })
+        .catch((error) => {
+          console.error("Error updating node address:", error);
+        });
     }
     // Fetch the current node address on page load
     document.addEventListener("DOMContentLoaded", function () {
-        fetch("/getNodeAddress")
+      fetch("/getNodeAddress")
         .then((response) => response.json())
         .then((data) => {
-            if (data.nodeAddress) {
-                document.getElementById("nodeAddressInput").value = data.nodeAddress;
-            }
+          if (data.nodeAddress) {
+            document.getElementById("nodeAddressInput").value =
+              data.nodeAddress;
+          }
         })
-        .catch((error) =>
-            console.error("Error fetching node address:", error)
-        );
+        .catch((error) => console.error("Error fetching node address:", error));
     });
 
     function updateEventType(selectedEventType) {
-        if (selectedEventType) {
-            fetch("/updateEventType", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-            },
-            body: JSON.stringify(selectedEventType),
-            })
-            .then(response => response.text())
-            .then(data => {
-                console.log("Event type updated:", data);
-            })
-            .catch(error => {
-                console.error("Error updating event type:", error);
-        });
-        } else {
-            console.error("Selected event type is null or undefined");
-        }
+      if (selectedEventType) {
+        fetch("/updateEventType", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(selectedEventType),
+        })
+          .then((response) => response.text())
+          .then((data) => {
+            console.log("Event type updated:", data);
+          })
+          .catch((error) => {
+            console.error("Error updating event type:", error);
+          });
+      } else {
+        console.error("Selected event type is null or undefined");
       }
+    }
 
     document.addEventListener("DOMContentLoaded", function () {
-        const toggleButton = document.getElementById("toggleButton");
-        const closeButton = document.getElementById("closeButton");
-        const offcanvasMenu = document.querySelector(".offcanvas");
-        const toggleMenu = function () {
-            offcanvasMenu.classList.toggle("transform-none");
-        };
+      const toggleButton = document.getElementById("toggleButton");
+      const closeButton = document.getElementById("closeButton");
+      const offcanvasMenu = document.querySelector(".offcanvas");
+      const toggleMenu = function () {
+        offcanvasMenu.classList.toggle("transform-none");
+      };
 
-        // Toggle menu when clicking the toggle button
-        toggleButton.addEventListener("click", toggleMenu);
+      // Toggle menu when clicking the toggle button
+      toggleButton.addEventListener("click", toggleMenu);
 
-        // Close menu when clicking the close button
-        closeButton.addEventListener("click", toggleMenu);
+      // Close menu when clicking the close button
+      closeButton.addEventListener("click", toggleMenu);
 
-        // Close menu when clicking outside the menu or pressing the Escape key
-        document.addEventListener("mousedown", function (event) {
-            if (!offcanvasMenu.contains(event.target) && event.target !== toggleButton) {
-                offcanvasMenu.classList.remove("transform-none");
-            }
-     });
+      // Close menu when clicking outside the menu or pressing the Escape key
+      document.addEventListener("mousedown", function (event) {
+        if (
+          !offcanvasMenu.contains(event.target) &&
+          event.target !== toggleButton
+        ) {
+          offcanvasMenu.classList.remove("transform-none");
+        }
+      });
 
-    // Close menu when pressing the Escape key
-    document.addEventListener("keydown", function (event) {
+      // Close menu when pressing the Escape key
+      document.addEventListener("keydown", function (event) {
         if (event.key === "Escape") {
-            offcanvasMenu.classList.remove("transform-none");
+          offcanvasMenu.classList.remove("transform-none");
         }
+      });
+
+      // Close menu when clicking on the page (outside the menu or toggle button)
+      document.addEventListener("focusin", function (event) {
+        if (
+          !offcanvasMenu.contains(event.target) &&
+          event.target !== toggleButton
+        ) {
+          offcanvasMenu.classList.remove("transform-none");
+        }
+      });
     });
 
-    // Close menu when clicking on the page (outside the menu or toggle button)
-    document.addEventListener("focusin", function (event) {
-        if (!offcanvasMenu.contains(event.target) && event.target !== toggleButton) {
-            offcanvasMenu.classList.remove("transform-none");
-        }
-    });
-  });
+    var toTopButton = document.getElementById("toTop");
 
-  // Function to display BlockEvent
-  function displayBlockEvent(blockEvent, newDiv) {
-    // Convert block size to kilobytes
-    const blockBodySize = blockEvent.payload.blockBodySize;
-    const blockBodySizeKB = blockBodySize / 1024;
+    // When the user scrolls down 200px from the top of the document, show the button
+    window.onscroll = function () {
+      if (
+        document.body.scrollTop > 200 ||
+        document.documentElement.scrollTop > 200
+      ) {
+        toTopButton.classList.remove("hidden");
+      } else {
+        toTopButton.classList.add("hidden");
+      }
+    };
 
-    // Full block size in kilobytes
-    const fullBlockSize = 90112;
+    // When the user clicks on the button, scroll to the top of the document
+    function goToTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
-    // Calculate percentage full based on kilobytes
-    const percentageFull = (blockBodySizeKB / (fullBlockSize / 1024)) * 100;
-    // Calculate time difference
-    const timeDifference = calculateTimeDifference(blockEvent);
+    // Function to display BlockEvent
+    function displayBlockEvent(blockEvent, newDiv) {
+      // Convert block size to kilobytes
+      const blockBodySize = blockEvent.payload.blockBodySize;
+      const blockBodySizeKB = blockBodySize / 1024;
+
+      // Full block size in kilobytes
+      const fullBlockSize = 90112;
+
+      // Calculate percentage full based on kilobytes
+      const percentageFull = (blockBodySizeKB / (fullBlockSize / 1024)) * 100;
+      // Calculate time difference
+      const timeDifference = calculateTimeDifference(blockEvent);
 
       newDiv.innerHTML = `
           <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
             <pre class="whitespace-pre-line text-green-600 mx-auto">
-              <span class="text-blue-400">Type</span><span class="text-white">:</span> ${blockEvent.type}
-              <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${blockEvent.timestamp}
-              <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${blockEvent.context.blockNumber}
-              <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${blockEvent.context.slotNumber}
-              <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(2)} KB, ${percentageFull.toFixed(2)}% full
+              <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
+                blockEvent.type
+              }
+              <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
+                blockEvent.timestamp
+              }
+              <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${
+                blockEvent.context.blockNumber
+              }
+              <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${
+                blockEvent.context.slotNumber
+              }
+              <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
+                2
+              )} KB, ${percentageFull.toFixed(2)}% full
               <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-              id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${blockEvent.payload.issuerVkey}</span>
+              id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${
+                blockEvent.payload.issuerVkey
+              }</span>
               <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-              id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${blockEvent.payload.blockHash}</span>
-              <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${blockEvent.payload.transactionCount}
+              id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${
+                blockEvent.payload.blockHash
+              }</span>
+              <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${
+                blockEvent.payload.transactionCount
+              }
             </pre>
           </div>
           <div class="text-center py-1 text-white">${timeDifference}</div>
       `;
       // Update the previous slot number for the next message
       prevSlotNumber = blockEvent.context.slotNumber;
-   }
-        
-  // Function to display RollbackEvent
-  function displayRollbackEvent(rollbackEvent, newDiv) {
+    }
+
+    // Function to display RollbackEvent
+    function displayRollbackEvent(rollbackEvent, newDiv) {
       // Example HTML content specific to RollbackEvent
       newDiv.innerHTML = `
           <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
@@ -369,10 +468,10 @@ id="toggleButton"
             </pre>
           </div>
       `;
-  }
-  
-  // Function to display TransactionEvent
-  function displayTransactionEvent(transactionEvent, newDiv) {
+    }
+
+    // Function to display TransactionEvent
+    function displayTransactionEvent(transactionEvent, newDiv) {
       newDiv.innerHTML = `
           <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
             <pre class="mx-auto whitespace-pre-line text-yellow-600">
@@ -386,7 +485,6 @@ id="toggleButton"
             </pre>
           </div>
        `;
-  }
-</script>
-  </body>
+    }
+  </script>
 </html>
