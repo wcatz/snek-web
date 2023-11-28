@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cardano Block Watch</title>
+    <title>Cardano Web Snek</title>
     <link rel="stylesheet" href="/static/css/output.min.css" />
     <script src="https://unpkg.com/htmx.org@1.9.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
@@ -18,7 +18,7 @@
 class="relative top-4 left-1/2 transform -translate-x-1/2 bg-transparent text-white px-4 py-2 rounded"
 id="toggleButton"
 >
-<img src="/static/images/snek-illustration.png" alt="Menu Icon" class="w-20 focus:outline-none" tabindex="-1">
+<img src="/static/images/snek-illustration.png" alt="Snek Menu" class="w-20 focus:outline-none" tabindex="-1">
 
 
 </button>
@@ -94,6 +94,16 @@ id="toggleButton"
               
               <input type="text" class="form-input ml-2 border-b border-gray-300 bg-transparent text-white focus:outline-none">
             </div>
+            <select id="eventType">
+              <option value="chainsync.block">Block Events</option>
+              <option value="chainsync.transaction">Transaction Events</option>
+              <option value="chainsync.rollback">Rollback Events</option>
+            </select>
+            <button
+            onclick="updateEventType()"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition ease-in-out duration-300">
+            Apply Event Type Filter
+            </button>
         
             <!-- Repeat as needed -->
           </div>

@@ -56,6 +56,51 @@ type BlockEvent struct {
 	Payload   chainsync.BlockEvent   `json:"payload"`
 }
 
+type RollbackEvent struct {
+	Type      string                  `json:"type"`
+	Timestamp string                  `json:"timestamp"`
+	Payload   chainsync.RollbackEvent `json:"payload"`
+}
+
+type TransactionContext struct {
+	BlockNumber     int    `json:"blockNumber"`
+	SlotNumber      int    `json:"slotNumber"`
+	TransactionHash string `json:"transactionHash"`
+	TransactionIdx  int    `json:"transactionIdx"`
+	NetworkMagic    int    `json:"networkMagic"`
+}
+
+type Asset struct {
+	Name        string `json:"name"`
+	NameHex     string `json:"nameHex"`
+	PolicyId    string `json:"policyId"`
+	Fingerprint string `json:"fingerprint"`
+	Amount      int    `json:"amount"`
+}
+
+type TransactionOutput struct {
+	Address string  `json:"address"`
+	Amount  int     `json:"amount"`
+	Assets  []Asset `json:"assets,omitempty"`
+}
+
+type TransactionPayload struct {
+	BlockHash       string                 `json:"blockHash"`
+	TransactionCbor string                 `json:"transactionCbor"`
+	Inputs          []string               `json:"inputs"`
+	Outputs         []TransactionOutput    `json:"outputs"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	Fee             int                    `json:"fee"`
+	Ttl             int                    `json:"ttl"`
+}
+
+type TransactionEvent struct {
+	Type      string             `json:"type"`
+	Timestamp string             `json:"timestamp"`
+	Context   TransactionContext `json:"context"`
+	Payload   TransactionPayload `json:"payload"`
+}
+
 // Define the WebSocket connection upgrader
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -67,13 +112,17 @@ var clients = make(map[*websocket.Conn]bool)
 var clientsMu sync.Mutex
 
 // Channel to broadcast block events to connected clients
-var events = make(chan BlockEvent)
+var events = make(chan interface{}, 100)
 
-// Indexer struct to manage the Snek pipeline and block events
+// Indexer struct to manage the Snek pipeline and events
 type Indexer struct {
-	pipeline    *pipeline.Pipeline
-	blockEvent  BlockEvent
-	nodeAddress string
+	pipeline         *pipeline.Pipeline
+	blockEvent       BlockEvent
+	rollbackEvent    RollbackEvent
+	transactionEvent TransactionEvent
+	nodeAddress      string
+	eventType        string
+	isRunning        bool
 }
 
 // Singleton instance of the Indexer
@@ -84,6 +133,7 @@ var globalIndexer = &Indexer{
 
 // WebSocket handler for broadcasting block events to connected clients
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -99,10 +149,10 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
-		// Wait for a new block event to be sent to the events channel
-		case blockEvent := <-events:
+		// Wait for a new event to be sent to the events channel
+		case event := <-events:
 			// Serialize the block event to JSON
-			message, err := json.Marshal(blockEvent)
+			message, err := json.Marshal(event)
 			if err != nil {
 				log.Println(err)
 				continue
@@ -139,8 +189,8 @@ func (i *Indexer) Start() error {
 	input_chainsync := chainsync.New(inputOpts...)
 	i.pipeline.AddInput(input_chainsync)
 
-	// Configure filter to handle only block events
-	filterEvent := filter_event.New(filter_event.WithTypes([]string{"chainsync.block"}))
+	// Update the event type filter based on the selection
+	filterEvent := filter_event.New(filter_event.WithTypes([]string{i.eventType}))
 	i.pipeline.AddFilter(filterEvent)
 
 	// Configure embedded output with callback function
@@ -161,49 +211,109 @@ func (i *Indexer) Start() error {
 		}
 	}()
 
+	i.isRunning = true
+
 	return nil
 }
 
 // Handle block events received from the Snek pipeline
 func (i *Indexer) handleEvent(event event.Event) error {
+
 	// Marshal the event to JSON
 	data, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	// Unmarshal JSON data into BlockEvent struct
-	var blockEvent BlockEvent
-	err = json.Unmarshal(data, &blockEvent)
-	if err != nil {
+	// Unmarshal the event to get the event type
+	var getEvent map[string]interface{}
+	errr := json.Unmarshal(data, &getEvent)
+	if errr != nil {
 		return err
 	}
 
-	// Format the timestamp into a human-readable form
-	parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
-	if err == nil {
-		blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+	eventType, ok := getEvent["type"].(string)
+	if !ok {
+		return fmt.Errorf("failed to get event type")
 	}
 
-	// Update the blockEvent field in the Indexer
-	i.blockEvent = blockEvent
+	switch eventType {
+	case "chainsync.block":
+		var blockEvent BlockEvent
+		err := json.Unmarshal(data, &blockEvent)
+		if err != nil {
+			return err
+		}
 
-	// Print the block event struct to the console
-	fmt.Printf("Received BlockEvent: %+v\n", blockEvent)
+		// Format the timestamp into a human-readable form
+		parsedTime, err := time.Parse(time.RFC3339, blockEvent.Timestamp)
+		if err == nil {
+			blockEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+		}
 
-	// Send the block event to the WebSocket clients
-	events <- blockEvent
+		// Update the currentEvent field in the Indexer
+		i.blockEvent = blockEvent
+
+		fmt.Printf("Received Event: %+v\n", blockEvent)
+
+		// Send the block event to the WebSocket clients
+		events <- blockEvent
+
+	case "chainsync.rollback":
+		var rollbackEvent RollbackEvent
+		err := json.Unmarshal(data, &rollbackEvent)
+		if err != nil {
+			return err
+		}
+
+		parsedTime, err := time.Parse(time.RFC3339, rollbackEvent.Timestamp)
+		if err == nil {
+			rollbackEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+		}
+
+		i.rollbackEvent = rollbackEvent
+
+		fmt.Printf("Received Event: %+v\n", rollbackEvent)
+
+		events <- rollbackEvent
+	case "chainsync.transaction":
+		fmt.Println("Received transaction event:", string(data))
+
+		var transactionEvent TransactionEvent
+
+		errr := json.Unmarshal(data, &transactionEvent)
+		if errr != nil {
+			log.Printf("error unmarshalling transaction event: %v, data: %s", errr, string(data))
+			return fmt.Errorf("error unmarshalling transaction event: %v", errr)
+		}
+
+		parsedTime, err := time.Parse(time.RFC3339, transactionEvent.Timestamp)
+		if err == nil {
+			transactionEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
+		}
+
+		i.transactionEvent = transactionEvent
+
+		fmt.Printf("Received Event: %+v\n", transactionEvent)
+
+		events <- transactionEvent
+	}
 
 	return nil
 }
 
 // Restart the Snek pipeline with the new node address
 func (i *Indexer) Restart() {
-	// Stop the current pipeline
-	if err := i.pipeline.Stop(); err != nil {
-		log.Fatalf("failed to stop pipeline: %s\n", err)
-	}
 
+	if i.isRunning {
+		// Stop the current pipeline
+		if err := i.pipeline.Stop(); err != nil {
+			log.Printf("failed to stop pipeline: %s\n", err)
+			// Wait for a moment to ensure pipeline is fully stopped
+			time.Sleep(time.Second * 3)
+		}
+		i.isRunning = false
+	}
 	// Start a new pipeline with the updated node address
 	if err := i.Start(); err != nil {
 		log.Fatalf("failed to start pipeline: %s\n", err)
@@ -270,6 +380,25 @@ func getNodeAddressHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func updateEventTypeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var newEventType string
+	if err := json.NewDecoder(r.Body).Decode(&newEventType); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// Update the event type and restart the pipeline
+	globalIndexer.eventType = newEventType
+	globalIndexer.Restart()
+
+	fmt.Fprintf(w, "Event type updated to %s\n", newEventType)
+}
+
 // Main function to start the Snek pipeline and serve HTTP requests
 func main() {
 
@@ -284,6 +413,7 @@ func main() {
 	http.HandleFunc("/ws", wsHandler)
 	http.HandleFunc("/updateNodeAddress", updateNodeAddressHandler)
 	http.HandleFunc("/getNodeAddress", getNodeAddressHandler)
+	http.HandleFunc("/updateEventType", updateEventTypeHandler)
 
 	// Start the HTTP server on port 8080
 	if err := http.ListenAndServe(":8080", nil); err != nil {
