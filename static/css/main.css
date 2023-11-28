@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+
 .text-wrap {
-    word-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .fade-in {
@@ -41,6 +42,18 @@
   }
 }
 
-.message-block {
-  transition-all: 1s ease-in-out;
+.offcanvas {
+  transition: transform 0.3s ease-in-out;
+  height: 50vh; /* Set the height to one-third of the viewport height */
+  transform: translateY(100%); /* Position it at the bottom off-screen */
+}
+
+.offcanvas.transform-none {
+  transform: translateY(0); /* Slide up one-third of the screen */
+}
+
+.form-input:focus, .form-multiselect:focus, .form-select:focus, .form-textarea:focus {
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: #67a0ff;
+  border-color: #67a0ff;
 }

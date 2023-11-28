@@ -24,9 +24,6 @@ var templates *template.Template
 // Mutex to synchronize access to the node address
 var nodeMu sync.Mutex
 
-// Node address as a string
-//var nodeAddress string
-
 // Initialize the HTML templates
 func init() {
 	templatesPath := filepath.Join(".", "templates", "*.html")
@@ -104,6 +101,51 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type RollbackEvent struct {
+	Type      string                  `json:"type"`
+	Timestamp string                  `json:"timestamp"`
+	Payload   chainsync.RollbackEvent `json:"payload"`
+}
+
+type TransactionContext struct {
+	BlockNumber     int    `json:"blockNumber"`
+	SlotNumber      int    `json:"slotNumber"`
+	TransactionHash string `json:"transactionHash"`
+	TransactionIdx  int    `json:"transactionIdx"`
+	NetworkMagic    int    `json:"networkMagic"`
+}
+
+type Asset struct {
+	Name        string `json:"name"`
+	NameHex     string `json:"nameHex"`
+	PolicyId    string `json:"policyId"`
+	Fingerprint string `json:"fingerprint"`
+	Amount      int    `json:"amount"`
+}
+
+type TransactionOutput struct {
+	Address string  `json:"address"`
+	Amount  int     `json:"amount"`
+	Assets  []Asset `json:"assets,omitempty"`
+}
+
+type TransactionPayload struct {
+	BlockHash       string                 `json:"blockHash"`
+	TransactionCbor string                 `json:"transactionCbor"`
+	Inputs          []string               `json:"inputs"`
+	Outputs         []TransactionOutput    `json:"outputs"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	Fee             int                    `json:"fee"`
+	Ttl             int                    `json:"ttl"`
+}
+
+type TransactionEvent struct {
+	Type      string             `json:"type"`
+	Timestamp string             `json:"timestamp"`
+	Context   TransactionContext `json:"context"`
+	Payload   TransactionPayload `json:"payload"`
+}
+
 // Define the WebSocket connection upgrader
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -115,10 +157,9 @@ var clients = make(map[*websocket.Conn]bool)
 var clientsMu sync.Mutex
 
 // Channel to broadcast block events to connected clients
-// var events = make(chan BlockEvent)
-var events = make(chan interface{})
+var events = make(chan interface{}, 100)
 
-// Indexer struct to manage the Snek pipeline and block events
+// Indexer struct to manage the Snek pipeline and events
 type Indexer struct {
 	pipeline         *pipeline.Pipeline
 	blockEvent       BlockEvent
@@ -153,7 +194,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
-		// Wait for a new block event to be sent to the events channel
+		// Wait for a new event to be sent to the events channel
 		case event := <-events:
 			// Serialize the block event to JSON
 			message, err := json.Marshal(event)
@@ -193,7 +234,6 @@ func (i *Indexer) Start() error {
 	input_chainsync := chainsync.New(inputOpts...)
 	i.pipeline.AddInput(input_chainsync)
 
-	// Configure filter to handle only block events
 	// Update the event type filter based on the selection
 	filterEvent := filter_event.New(filter_event.WithTypes([]string{i.eventType}))
 	i.pipeline.AddFilter(filterEvent)
