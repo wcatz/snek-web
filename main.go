@@ -229,6 +229,8 @@ func (i *Indexer) handleEvent(event event.Event) error {
 	if err != nil {
 		return err
 	}
+
+	// Unmarshal the event to get the event type
 	var getEvent map[string]interface{}
 	errr := json.Unmarshal(data, &getEvent)
 	if errr != nil {
@@ -257,11 +259,11 @@ func (i *Indexer) handleEvent(event event.Event) error {
 		// Update the currentEvent field in the Indexer
 		i.blockEvent = blockEvent
 
-		// Print the block event struct to the console
 		fmt.Printf("Received Event: %+v\n", blockEvent)
 
 		// Send the block event to the WebSocket clients
 		events <- blockEvent
+
 	case "chainsync.rollback":
 		var rollbackEvent RollbackEvent
 		err := json.Unmarshal(data, &rollbackEvent)
@@ -269,45 +271,36 @@ func (i *Indexer) handleEvent(event event.Event) error {
 			return err
 		}
 
-		// Format the timestamp into a human-readable form
 		parsedTime, err := time.Parse(time.RFC3339, rollbackEvent.Timestamp)
 		if err == nil {
 			rollbackEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
 		}
 
-		// Update the currentEvent field in the Indexer
 		i.rollbackEvent = rollbackEvent
 
-		// Print the rollbackk event struct to the console
 		fmt.Printf("Received Event: %+v\n", rollbackEvent)
 
-		// Send the block event to the WebSocket clients
 		events <- rollbackEvent
 	case "chainsync.transaction":
 		fmt.Println("Received transaction event:", string(data))
 
 		var transactionEvent TransactionEvent
 
-		// Unmarshal tranasctionEvent to JSON
 		errr := json.Unmarshal(data, &transactionEvent)
 		if errr != nil {
 			log.Printf("error unmarshalling transaction event: %v, data: %s", errr, string(data))
 			return fmt.Errorf("error unmarshalling transaction event: %v", errr)
 		}
 
-		// Format the timestamp into a human-readable form
 		parsedTime, err := time.Parse(time.RFC3339, transactionEvent.Timestamp)
 		if err == nil {
 			transactionEvent.Timestamp = parsedTime.Format("January 2, 2006 15:04:05 MST")
 		}
 
-		// Update the currentEvent field in the Indexer
 		i.transactionEvent = transactionEvent
 
-		// Print the transaction event struct to the console
 		fmt.Printf("Received Event: %+v\n", transactionEvent)
 
-		// Send the block event to the WebSocket clients
 		events <- transactionEvent
 	}
 
@@ -320,7 +313,6 @@ func (i *Indexer) Restart() {
 	if i.isRunning {
 		// Stop the current pipeline
 		if err := i.pipeline.Stop(); err != nil {
-			log.Fatalf("failed to stop pipeline: %s\n", err)
 			log.Printf("failed to stop pipeline: %s\n", err)
 			// Wait for a moment to ensure pipeline is fully stopped
 			time.Sleep(time.Second * 3)
