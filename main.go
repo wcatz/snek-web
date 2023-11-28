@@ -16,7 +16,6 @@ import (
 	output_embedded "github.com/blinklabs-io/snek/output/embedded"
 	"github.com/blinklabs-io/snek/pipeline"
 	"github.com/gorilla/websocket"
-	// Import ledger package from gouroboros folder located in our directory If needed
 )
 
 // HTML template
