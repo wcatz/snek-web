@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 .text-wrap {
   word-wrap: break-word;
 }
@@ -43,12 +44,12 @@
 
 .offcanvas {
   transition: transform 0.3s ease-in-out;
-  height: 66vh; /* Set the height to 33% of the viewport height */
+  height: 50vh; /* Set the height to one-third of the viewport height */
   transform: translateY(100%); /* Position it at the bottom off-screen */
 }
 
 .offcanvas.transform-none {
-  transform: translateY(0);
+  transform: translateY(0); /* Slide up one-third of the screen */
 }
 
 .form-input:focus, .form-multiselect:focus, .form-select:focus, .form-textarea:focus {
