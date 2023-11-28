@@ -70,7 +70,7 @@ type Asset struct {
 type TransactionOutput struct {
 	Address string  `json:"address"`
 	Amount  int     `json:"amount"`
-	Assets  []Asset `json:"assets,omitempty"` // omitempty if assets can be absent
+	Assets  []Asset `json:"assets,omitempty"`
 }
 
 type TransactionPayload struct {
@@ -103,13 +103,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-// type BlockEvent struct {
-// 	Type      string                 `json:"type"`
-// 	Timestamp string                 `json:"timestamp"`
-// 	Context   chainsync.BlockContext `json:"context"`
-// 	Payload   chainsync.BlockEvent   `json:"payload"`
-// }
 
 // Define the WebSocket connection upgrader
 var upgrader = websocket.Upgrader{
