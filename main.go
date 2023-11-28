@@ -116,7 +116,7 @@ var clientsMu sync.Mutex
 
 // Channel to broadcast block events to connected clients
 // var events = make(chan BlockEvent)
-var events = make(chan interface{}, 100)
+var events = make(chan interface{})
 
 // Indexer struct to manage the Snek pipeline and block events
 type Indexer struct {
