@@ -475,25 +475,33 @@ function formatTimeDifference(slotsDiff) {
       prevSlotNumber = blockEvent.context.slotNumber;
     }
 
-    // Function to display RollbackEvent
-    function displayRollbackEvent(rollbackEvent, newDiv) {
-      // Example HTML content specific to RollbackEvent
-            // Calculate time difference
-            const timeDifference = calculateTimeDifference(rollbackEvent);
-      newDiv.innerHTML = `
-          <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
-            <pre class="mx-auto whitespace-pre-line text-red-600">
-              <span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
-              <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
-              <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-              id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
-              <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
-            </pre>
-          </div>
-          <div class="text-center py-1 text-white">${timeDifference}</div>
+// Function to display RollbackEvent
+function displayRollbackEvent(rollbackEvent, newDiv) {
+  // Example HTML content specific to RollbackEvent
+  // Calculate time difference
+  const timeDifference = calculateTimeDifference(rollbackEvent);
+  newDiv.innerHTML = `
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black m-4 p-6 rounded-lg shadow-lg">
+      <pre class="mx-auto whitespace-pre-line text-red-600">
+        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
+        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
+        <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+        id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
+        <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
+      </pre>
+    </div>
+  `;
 
-      `;
-    }
+  // Only display the time difference if it is not an empty string
+  if (timeDifference !== "") {
+    const timeDifferenceDiv = document.createElement("div");
+    timeDifferenceDiv.classList.add("text-center", "py-1", "text-white");
+    timeDifferenceDiv.innerText = timeDifference;
+    newDiv.appendChild(timeDifferenceDiv);
+  }
+}
+
+
 
 // Function to display TransactionEvent
 function displayTransactionEvent(transactionEvent, newDiv) {
