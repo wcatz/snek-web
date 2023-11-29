@@ -471,19 +471,26 @@
 
     // Function to display TransactionEvent
     function displayTransactionEvent(transactionEvent, newDiv) {
-      newDiv.innerHTML = `
-          <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
-            <pre class="mx-auto whitespace-pre-line text-yellow-600">
-              <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
-              <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
-              <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
-              <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
-              <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-              id="txHash" onclick="copyToClipboard(this, 'txHash')">${transactionEvent.context.transactionHash}</span>
-              <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
-            </pre>
-          </div>
-       `;
-    }
+  const transactionDiv = document.createElement("div");
+  transactionDiv.classList.add("mb-2");
+
+  transactionDiv.innerHTML = `
+  <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
+    <pre class="mx-auto whitespace-pre-line text-yellow-600">
+      <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
+      <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
+      <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
+      <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
+      <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+        id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
+      <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
+    </pre>
+  </div>
+  `;
+
+  // Append the new div to the provided container
+  newDiv.appendChild(transactionDiv);
+}
+
   </script>
 </html>
