@@ -220,27 +220,6 @@
         );
     }
 
-    // Function to calculate time difference based on slot number
-    function calculateTimeDifference(blockEvent) {
-      let timeDifference = "";
-
-      // Calculate time difference between consecutive messages based on slot number
-      if (prevSlotNumber !== undefined) {
-        const slotsDiff = blockEvent.context.slotNumber - prevSlotNumber;
-
-        if (slotsDiff < 60) {
-          // If less than 60 seconds, display only seconds
-          timeDifference = `${slotsDiff} seconds`;
-        } else {
-          // If more than 60 seconds, convert to minutes and seconds
-          const minutes = Math.floor(slotsDiff / 60);
-          const remainingSeconds = slotsDiff % 60;
-          timeDifference = `${minutes} minutes ${remainingSeconds} seconds`;
-        }
-      }
-
-      return timeDifference;
-    }
     // Create a WebSocket connection
     const socket = new WebSocket("ws://localhost:8080/ws");
 
@@ -402,6 +381,49 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+// Function to calculate time difference based on slot number
+function calculateTimeDifference(currentEvent) {
+  let timeDifference = "";
+
+  // Check if previous slot number is defined
+  if (prevSlotNumber !== undefined) {
+    // Determine the slot number based on the event type
+    const currentSlotNumber =
+      currentEvent.type === "chainsync.block"
+        ? currentEvent.context.slotNumber
+        : currentEvent.type === "chainsync.rollback"
+        ? currentEvent.payload.slotNumber
+        : currentEvent.context.slotNumber;
+
+    // Only calculate time difference if the slot number has increased
+    if (currentSlotNumber > prevSlotNumber) {
+      // Calculate time difference based on the slot number of the current event
+      const slotsDiff = Math.abs(currentSlotNumber - prevSlotNumber);
+      timeDifference = formatTimeDifference(slotsDiff);
+    }
+  }
+
+  // Update the previous slot number for the next message
+  prevSlotNumber =
+    currentEvent.type === "chainsync.block"
+      ? currentEvent.context.slotNumber
+      : currentEvent.type === "chainsync.rollback"
+      ? currentEvent.payload.slotNumber
+      : currentEvent.context.slotNumber;
+
+  return timeDifference;
+}
+
+// Function to format time difference in a human-readable format
+function formatTimeDifference(slotsDiff) {
+  if (slotsDiff < 60) {
+    return `${slotsDiff} seconds`;
+  } else {
+    const minutes = Math.floor(slotsDiff / 60);
+    const remainingSeconds = slotsDiff % 60;
+    return `${minutes} minutes ${remainingSeconds} seconds`;
+  }
+}
     // Function to display BlockEvent
     function displayBlockEvent(blockEvent, newDiv) {
       // Convert block size to kilobytes
@@ -456,6 +478,8 @@
     // Function to display RollbackEvent
     function displayRollbackEvent(rollbackEvent, newDiv) {
       // Example HTML content specific to RollbackEvent
+            // Calculate time difference
+            const timeDifference = calculateTimeDifference(rollbackEvent);
       newDiv.innerHTML = `
           <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
             <pre class="mx-auto whitespace-pre-line text-red-600">
@@ -466,31 +490,57 @@
               <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
             </pre>
           </div>
+          <div class="text-center py-1 text-white">${timeDifference}</div>
+
       `;
     }
 
-    // Function to display TransactionEvent
-    function displayTransactionEvent(transactionEvent, newDiv) {
+// Function to display TransactionEvent
+function displayTransactionEvent(transactionEvent, newDiv) {
   const transactionDiv = document.createElement("div");
   transactionDiv.classList.add("mb-2");
 
+  // Calculate time difference
+  const timeDifference = calculateTimeDifference(transactionEvent);
+
   transactionDiv.innerHTML = `
-  <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
-    <pre class="mx-auto whitespace-pre-line text-yellow-600">
-      <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
-      <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
-      <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
-      <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
-      <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-        id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
-      <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
-    </pre>
-  </div>
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
+      <pre class="mx-auto whitespace-pre-line text-yellow-600">
+        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
+          transactionEvent.type
+        }
+        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
+          transactionEvent.timestamp
+        }
+        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${
+          transactionEvent.context.blockNumber
+        }
+        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${
+          transactionEvent.context.slotNumber
+        }
+        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+          id="txHash" onclick="copyToClipboard(this)">${
+            transactionEvent.context.transactionHash
+          }</span>
+        <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${
+          transactionEvent.payload.fee
+        }
+      </pre>
+    </div>
   `;
 
   // Append the new div to the provided container
   newDiv.appendChild(transactionDiv);
+
+  // Display time difference if it's not an empty string
+  if (timeDifference !== "") {
+    const timeDifferenceDiv = document.createElement("div");
+    timeDifferenceDiv.classList.add("text-center", "py-1", "text-white");
+    timeDifferenceDiv.textContent = timeDifference;
+    newDiv.appendChild(timeDifferenceDiv);
+  }
 }
+
 
   </script>
 </html>
