@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cardano Web Snek</title>
     <link rel="stylesheet" href="/static/css/output.min.css" />
+    <script src="/static/js/web-snek.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
   </head>
@@ -186,18 +187,21 @@
     </div>
   </body>
   <script>
-    let prevSlotNumber
-    // Event handler for incoming messages
-    function handleWebSocketMessage(event) {
-      // Parse the JSON message
+    var socket = new WebSocket("ws://localhost:8080/ws");
+
+    var handleSocketOpen = (event) =>
+      console.log("WebSocket connection established:", event);
+    var handleSocketError = (event) =>
+      console.error("WebSocket error:", event);
+    var handleSocketClose = (event) =>
+      console.log("WebSocket connection closed:", event);
+    var handleRefreshMessage = (event) =>
+      event.data === "refresh" && window.location.reload();
+
+    var handleWebSocketMessage = (event) => {
       const eventData = JSON.parse(event.data);
+      const newDiv = createMessageDiv();
 
-      // Create a new div element for each message block
-      const newDiv = document.createElement("div");
-      newDiv.classList.add("message-block");
-      newDiv.id = "message-" + new Date().getTime(); // Unique ID based on timestamp
-
-      // Determine the type of event and format accordingly
       switch (eventData.type) {
         case "chainsync.block":
           displayBlockEvent(eventData, newDiv);
@@ -211,343 +215,292 @@
         default:
           console.log("Unknown event type:", eventData.type);
       }
-      // Insert the new div into the messages container
-      document
-        .getElementById("messages-container")
-        .insertBefore(
-          newDiv,
-          document.getElementById("messages-container").firstChild
-        );
-    }
 
-    // Create a WebSocket connection
-    const socket = new WebSocket("ws://localhost:8080/ws");
+      insertMessageDiv(newDiv);
+    };
 
-    // Event handler for when the WebSocket connection is established
-    socket.addEventListener("open", (event) => {
-      console.log("WebSocket connection established:", event);
-    });
-
-    // Event handler for WebSocket errors
-    socket.addEventListener("error", (event) => {
-      console.error("WebSocket error:", event);
-    });
-
-    // Event handler for WebSocket closure
-    socket.addEventListener("close", (event) => {
-      console.log("WebSocket connection closed:", event);
-    });
-
-    // Event handler for incoming messages
+    // Set up WebSocket event listeners
+    socket.addEventListener("open", handleSocketOpen);
+    socket.addEventListener("error", handleSocketError);
+    socket.addEventListener("close", handleSocketClose);
+    socket.addEventListener("message", handleRefreshMessage);
     socket.addEventListener("message", handleWebSocketMessage);
 
-    socket.addEventListener("message", function (event) {
-      if (event.data === "refresh") {
-        window.location.reload();
-        return;
-      }
-    });
-
-    function copyToClipboard(element, property) {
-      const propertySpan = element;
-      const tempInput = document.createElement("textarea");
-      tempInput.value = propertySpan.innerText;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand("copy");
-      document.body.removeChild(tempInput);
-
-      // Highlight copy
-      propertySpan.classList.add(
-        "text-white",
-        "transition-color",
-        "duration-300"
-      );
-      setTimeout(() => {
-        propertySpan.classList.remove("text-white");
-      }, 500);
+    // Function to create a new message div
+    function createMessageDiv() {
+      const newDiv = document.createElement("div");
+      newDiv.classList.add("message-block");
+      newDiv.id = "message-" + new Date().getTime();
+      return newDiv;
     }
 
-    // Fetch the current node address on page load
-    document.addEventListener("DOMContentLoaded", function () {
-      fetch("/getNodeAddress")
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.nodeAddress) {
-            document.getElementById("nodeAddressInput").value =
-              data.nodeAddress;
-          }
-        })
-        .catch((error) => console.error("Error fetching node address:", error));
-    });
-
-    function updateNodeAddress() {
-      var newNodeAddress = document.getElementById("nodeAddressInput").value;
-
-      fetch("/updateNodeAddress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newNodeAddress),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          console.log("Node address updated:", data);
-        })
-        .catch((error) => {
-          console.error("Error updating node address:", error);
-        });
+    // Function to insert a message div into the messages container
+    function insertMessageDiv(newDiv) {
+      const messagesContainer = document.getElementById("messages-container");
+      messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
     }
 
-    function updateEventType(selectedEventType) {
-      if (selectedEventType) {
-        fetch("/updateEventType", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(selectedEventType),
-        })
-          .then((response) => response.text())
-          .then((data) => {
-            console.log("Event type updated:", data);
-          })
-          .catch((error) => {
-            console.error("Error updating event type:", error);
-          });
-      } else {
-        console.error("Selected event type is null or undefined");
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", function () {
-      const toggleButton = document.getElementById("toggleButton");
-      const closeButton = document.getElementById("closeButton");
-      const offcanvasMenu = document.querySelector(".offcanvas");
-      const toggleMenu = function () {
-        offcanvasMenu.classList.toggle("transform-none");
-      };
-
-      // Toggle menu when clicking the toggle button
-      toggleButton.addEventListener("click", toggleMenu);
-
-      // Close menu when clicking the close button
-      closeButton.addEventListener("click", toggleMenu);
-
-      // Close menu when clicking outside the menu or pressing the Escape key
-      document.addEventListener("mousedown", function (event) {
-        if (
-          !offcanvasMenu.contains(event.target) &&
-          event.target !== toggleButton
-        ) {
-          offcanvasMenu.classList.remove("transform-none");
-        }
-      });
-
-      // Close menu when pressing the Escape key
-      document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape") {
-          offcanvasMenu.classList.remove("transform-none");
-        }
-      });
-
-      // Close menu when clicking on the page (outside the menu or toggle button)
-      document.addEventListener("focusin", function (event) {
-        if (
-          !offcanvasMenu.contains(event.target) &&
-          event.target !== toggleButton
-        ) {
-          offcanvasMenu.classList.remove("transform-none");
-        }
-      });
-    });
-    // When the user scrolls down 2 screen heights, show the button
-    window.onscroll = function () {
-      const scrollThreshold = window.innerHeight * 2;
-      const toTopButton = document.getElementById("toTop");
-
-      if (
-        document.body.scrollTop > scrollThreshold ||
-        document.documentElement.scrollTop > scrollThreshold
-      ) {
-        toTopButton.classList.remove("hidden");
-      } else {
-        toTopButton.classList.add("hidden");
-      }
-    };
-    // When the user clicks on the button, scroll to the top of the document
-    function goToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-// Function to calculate time difference based on slot number
-function calculateTimeDifference(currentEvent) {
-  let timeDifference = "";
-
-  // Check if previous slot number is defined
-  if (prevSlotNumber !== undefined) {
-    // Determine the slot number based on the event type
-    const currentSlotNumber =
-      currentEvent.type === "chainsync.block"
-        ? currentEvent.context.slotNumber
-        : currentEvent.type === "chainsync.rollback"
-        ? currentEvent.payload.slotNumber
-        : currentEvent.context.slotNumber;
-
-    // Only calculate time difference if the slot number has increased
-    if (currentSlotNumber > prevSlotNumber) {
-      // Calculate time difference based on the slot number of the current event
-      const slotsDiff = Math.abs(currentSlotNumber - prevSlotNumber);
-      timeDifference = formatTimeDifference(slotsDiff);
-    }
-  }
-
-  // Update the previous slot number for the next message
-  prevSlotNumber =
-    currentEvent.type === "chainsync.block"
-      ? currentEvent.context.slotNumber
-      : currentEvent.type === "chainsync.rollback"
-      ? currentEvent.payload.slotNumber
-      : currentEvent.context.slotNumber;
-
-  return timeDifference;
-}
-
-// Function to format time difference in a human-readable format
-function formatTimeDifference(slotsDiff) {
-  if (slotsDiff < 60) {
-    return `${slotsDiff} seconds`;
-  } else {
-    const minutes = Math.floor(slotsDiff / 60);
-    const remainingSeconds = slotsDiff % 60;
-    return `${minutes} minutes ${remainingSeconds} seconds`;
-  }
-}
     // Function to display BlockEvent
     function displayBlockEvent(blockEvent, newDiv) {
       // Convert block size to kilobytes
       const blockBodySize = blockEvent.payload.blockBodySize;
       const blockBodySizeKB = blockBodySize / 1024;
-
       // Full block size in kilobytes
       const fullBlockSize = 90112;
-
       // Calculate percentage full based on kilobytes
       const percentageFull = (blockBodySizeKB / (fullBlockSize / 1024)) * 100;
       // Calculate time difference
       const timeDifference = calculateTimeDifference(blockEvent);
-
       newDiv.innerHTML = `
-          <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
-            <pre class="whitespace-pre-line text-green-600 mx-auto">
-              <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
-                blockEvent.type
-              }
-              <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
-                blockEvent.timestamp
-              }
-              <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${
-                blockEvent.context.blockNumber
-              }
-              <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${
-                blockEvent.context.slotNumber
-              }
-              <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
-                2
-              )} KB, ${percentageFull.toFixed(2)}% full
-              <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-              id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${
-                blockEvent.payload.issuerVkey
-              }</span>
-              <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-              id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${
-                blockEvent.payload.blockHash
-              }</span>
-              <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${
-                blockEvent.payload.transactionCount
-              }
-            </pre>
-          </div>
-          <div class="text-center py-1 text-white">${timeDifference}</div>
-      `;
+      <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
+        <pre class="whitespace-pre-line text-green-600 mx-auto">
+          <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
+            blockEvent.type
+          }
+          <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
+            blockEvent.timestamp
+          }
+          <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${
+            blockEvent.context.blockNumber
+          }
+          <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${
+            blockEvent.context.slotNumber
+          }
+          <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
+            2
+          )} KB, ${percentageFull.toFixed(2)}% full
+          <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+          id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${
+            blockEvent.payload.issuerVkey
+          }</span>
+          <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+          id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${
+            blockEvent.payload.blockHash
+          }</span>
+          <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${
+            blockEvent.payload.transactionCount
+          }
+        </pre>
+      </div>
+      <div class="text-center py-1 text-white">${timeDifference}</div>
+  `;
       // Update the previous slot number for the next message
       prevSlotNumber = blockEvent.context.slotNumber;
     }
+    // Function to display RollbackEvent
+    function displayRollbackEvent(rollbackEvent, newDiv) {
+      // Example HTML content specific to RollbackEvent
+      // Calculate time difference
+      const timeDifference = calculateTimeDifference(rollbackEvent);
+      newDiv.innerHTML = `
+<div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black m-4 p-6 rounded-lg shadow-lg">
+  <pre class="mx-auto whitespace-pre-line text-red-600">
+    <span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
+    <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
+    <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+    id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
+    <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
+  </pre>
+</div>
+`;
+      // Only display the time difference if it is not an empty string
+      if (timeDifference !== "") {
+        const timeDifferenceDiv = document.createElement("div");
+        timeDifferenceDiv.classList.add("text-center", "py-1", "text-white");
+        timeDifferenceDiv.innerText = timeDifference;
+        newDiv.appendChild(timeDifferenceDiv);
+      }
+    }
 
-// Function to display RollbackEvent
-function displayRollbackEvent(rollbackEvent, newDiv) {
-  // Example HTML content specific to RollbackEvent
-  // Calculate time difference
-  const timeDifference = calculateTimeDifference(rollbackEvent);
-  newDiv.innerHTML = `
-    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black m-4 p-6 rounded-lg shadow-lg">
-      <pre class="mx-auto whitespace-pre-line text-red-600">
-        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
-        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
-        <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-        id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
-        <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
-      </pre>
-    </div>
-  `;
-
-  // Only display the time difference if it is not an empty string
-  if (timeDifference !== "") {
-    const timeDifferenceDiv = document.createElement("div");
-    timeDifferenceDiv.classList.add("text-center", "py-1", "text-white");
-    timeDifferenceDiv.innerText = timeDifference;
-    newDiv.appendChild(timeDifferenceDiv);
-  }
-}
-
-
-
+    // Add a global variable to track the view state
+let inExtraDataView = false;
 // Function to display TransactionEvent
 function displayTransactionEvent(transactionEvent, newDiv) {
   const transactionDiv = document.createElement("div");
-  transactionDiv.classList.add("mb-2");
-
+  transactionDiv.classList.add("my-2");
   // Calculate time difference
   const timeDifference = calculateTimeDifference(transactionEvent);
-
   transactionDiv.innerHTML = `
-    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
       <pre class="mx-auto whitespace-pre-line text-yellow-600">
-        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
-          transactionEvent.type
-        }
-        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
-          transactionEvent.timestamp
-        }
-        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${
-          transactionEvent.context.blockNumber
-        }
-        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${
-          transactionEvent.context.slotNumber
-        }
-        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-          id="txHash" onclick="copyToClipboard(this)">${
-            transactionEvent.context.transactionHash
-          }</span>
-        <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${
-          transactionEvent.payload.fee
-        }
+        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
+        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
+        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
+        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
+        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span>
+        <span class="whitespace-pre-line text-wrap" id="txHash">${transactionEvent.context.transactionHash}</span>
+        <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
       </pre>
+      <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
+        ➡️ <!-- Right arrow symbol -->
+      </div>
     </div>
   `;
-
   // Append the new div to the provided container
   newDiv.appendChild(transactionDiv);
-
   // Display time difference if it's not an empty string
   if (timeDifference !== "") {
     const timeDifferenceDiv = document.createElement("div");
-    timeDifferenceDiv.classList.add("text-center", "py-1", "text-white");
+    timeDifferenceDiv.classList.add("text-center", "text-white");
     timeDifferenceDiv.textContent = timeDifference;
     newDiv.appendChild(timeDifferenceDiv);
   }
+
+  // Add event listener for arrow button click
+  const arrowButton = newDiv.querySelector('#arrowButton');
+  arrowButton.addEventListener('click', () => handleRightArrowClick(transactionEvent));
 }
+
+// Placeholder function for right arrow click
+function handleRightArrowClick(transactionEvent) {
+  // Set the view state to "extra data" view
+  inExtraDataView = true;
+
+  // Clear the screen
+  clearScreen();
+
+  // Display extra data
+  displayExtraData(transactionEvent);
+
+  // Add a back button
+  const backButton = document.createElement("button");
+  backButton.innerText = "Go Back";
+  backButton.classList.add("mt-4", "px-4", "py-2", "bg-blue-500", "text-white", "rounded", "hover:bg-blue-700", "focus:outline-none");
+  backButton.onclick = goBack;
+  document.body.appendChild(backButton);
+}
+
+// Function to go back to the main view
+function goBack() {
+  // Reset the view state to "main page" view
+  inExtraDataView = false;
+
+  // Clear the screen
+  clearScreen();
+
+  // Redisplay all events only if not in "extra data" view
+  if (!inExtraDataView) {
+    displayAllEvents();
+  }
+}
+
+// Function to clear the screen
+function clearScreen() {
+  const messagesContainer = document.getElementById("messages-container");
+  messagesContainer.innerHTML = "";
+}
+
+// Function to display only the extra data for a transaction
+function displayExtraData(transactionEvent) {
+  // Create a new div for the extra data
+  const extraDataDiv = document.createElement("div");
+  extraDataDiv.classList.add("zoom-in", "mx-auto", "max-w-5xl", "px-4", "sm:px-6", "lg:px-8", "bg-black", "p-6", "rounded-lg", "shadow-lg");
+
+  // Your logic to extract and display the extra data goes here
+  const extraData = extractExtraData(transactionEvent);
+  extraDataDiv.innerHTML = `
+    <pre class="mx-auto whitespace-pre-line text-white">
+      ${extraData}
+    </pre>
+  `;
+
+  // Append the extra data div to the messages container
+  const messagesContainer = document.getElementById("messages-container");
+  messagesContainer.appendChild(extraDataDiv);
+}
+
+// Function to extract and format the extra data
+function extractExtraData(transactionEvent) {
+  // Your logic to extract and format the extra data goes here
+  // This could involve parsing the transactionEvent.payload and formatting it accordingly
+  // For now, I'll simply return the JSON string representation of the payload
+  return JSON.stringify(transactionEvent.payload, null, 2);
+}
+
+// Function to redisplay all events
+function displayAllEvents() {
+  // Your logic to display all events goes here
+  // This might involve fetching and displaying events from your WebSocket or another data source
+  // For now, you can add sample events to the messages container
+  const messagesContainer = document.getElementById("messages-container");
+  const sampleEventDiv = document.createElement("div");
+  sampleEventDiv.innerText = "Sample Event 1\nSample Event 2\nSample Event 3";
+  messagesContainer.appendChild(sampleEventDiv);
+}
+
+// Add a global array to store new events when in "extra data" view
+let extraDataQueue = [];
+
+// Function to create a new message div
+function createMessageDiv() {
+  const newDiv = document.createElement("div");
+  newDiv.classList.add("message-block");
+  newDiv.id = "message-" + new Date().getTime();
+  return newDiv;
+}
+
+// Function to insert a message div into the messages container
+function insertMessageDiv(newDiv) {
+  const messagesContainer = document.getElementById("messages-container");
+  messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
+}
+
+// Function to handle WebSocket open event
+function handleSocketOpen(event) {
+  console.log("WebSocket connection opened:", event);
+}
+
+// Function to handle WebSocket error event
+function handleSocketError(event) {
+  console.error("WebSocket error:", event);
+}
+
+// Function to handle WebSocket close event
+function handleSocketClose(event) {
+  console.log("WebSocket connection closed:", event);
+}
+
+// Set up WebSocket event listeners
+socket.addEventListener("open", handleSocketOpen);
+socket.addEventListener("error", handleSocketError);
+socket.addEventListener("close", handleSocketClose);
+socket.addEventListener("message", handleRefreshMessage);
+socket.addEventListener("message", handleWebSocketMessage);
+
+// Function to handle WebSocket message event
+function handleWebSocketMessage(event) {
+  const eventData = JSON.parse(event.data);
+  const newDiv = createMessageDiv();
+
+  if (inExtraDataView) {
+    // Store new events in the queue when in "extra data" view
+    extraDataQueue.push({ eventData, newDiv });
+  } else {
+    // Display events directly when in the main view
+    switch (eventData.type) {
+      case "chainsync.block":
+        displayBlockEvent(eventData, newDiv);
+        break;
+      case "chainsync.rollback":
+        displayRollbackEvent(eventData, newDiv);
+        break;
+      case "chainsync.transaction":
+        displayTransactionEvent(eventData, newDiv);
+        break;
+      default:
+        console.log("Unknown event type:", eventData.type);
+    }
+
+    insertMessageDiv(newDiv);
+  }
+}
+
+// Function to handle WebSocket message event
+function handleRefreshMessage(event) {
+  // Your logic to handle refresh messages goes here
+  // This might involve updating the UI or triggering a data refresh
+}
+
 
 
   </script>
