@@ -187,249 +187,19 @@
     </div>
   </body>
   <script>
-    var socket = new WebSocket("ws://localhost:8080/ws");
-
-    var handleSocketOpen = (event) =>
-      console.log("WebSocket connection established:", event);
-    var handleSocketError = (event) =>
-      console.error("WebSocket error:", event);
-    var handleSocketClose = (event) =>
-      console.log("WebSocket connection closed:", event);
-    var handleRefreshMessage = (event) =>
-      event.data === "refresh" && window.location.reload();
-
-    var handleWebSocketMessage = (event) => {
-      const eventData = JSON.parse(event.data);
-      const newDiv = createMessageDiv();
-
-      switch (eventData.type) {
-        case "chainsync.block":
-          displayBlockEvent(eventData, newDiv);
-          break;
-        case "chainsync.rollback":
-          displayRollbackEvent(eventData, newDiv);
-          break;
-        case "chainsync.transaction":
-          displayTransactionEvent(eventData, newDiv);
-          break;
-        default:
-          console.log("Unknown event type:", eventData.type);
-      }
-
-      insertMessageDiv(newDiv);
-    };
-
-    // Set up WebSocket event listeners
-    socket.addEventListener("open", handleSocketOpen);
-    socket.addEventListener("error", handleSocketError);
-    socket.addEventListener("close", handleSocketClose);
-    socket.addEventListener("message", handleRefreshMessage);
-    socket.addEventListener("message", handleWebSocketMessage);
-
-    // Function to create a new message div
-    function createMessageDiv() {
-      const newDiv = document.createElement("div");
-      newDiv.classList.add("message-block");
-      newDiv.id = "message-" + new Date().getTime();
-      return newDiv;
-    }
-
-    // Function to insert a message div into the messages container
-    function insertMessageDiv(newDiv) {
-      const messagesContainer = document.getElementById("messages-container");
-      messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
-    }
-
-    // Function to display BlockEvent
-    function displayBlockEvent(blockEvent, newDiv) {
-      // Convert block size to kilobytes
-      const blockBodySize = blockEvent.payload.blockBodySize;
-      const blockBodySizeKB = blockBodySize / 1024;
-      // Full block size in kilobytes
-      const fullBlockSize = 90112;
-      // Calculate percentage full based on kilobytes
-      const percentageFull = (blockBodySizeKB / (fullBlockSize / 1024)) * 100;
-      // Calculate time difference
-      const timeDifference = calculateTimeDifference(blockEvent);
-      newDiv.innerHTML = `
-      <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
-        <pre class="whitespace-pre-line text-green-600 mx-auto">
-          <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
-            blockEvent.type
-          }
-          <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
-            blockEvent.timestamp
-          }
-          <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${
-            blockEvent.context.blockNumber
-          }
-          <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${
-            blockEvent.context.slotNumber
-          }
-          <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
-            2
-          )} KB, ${percentageFull.toFixed(2)}% full
-          <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-          id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${
-            blockEvent.payload.issuerVkey
-          }</span>
-          <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-          id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${
-            blockEvent.payload.blockHash
-          }</span>
-          <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${
-            blockEvent.payload.transactionCount
-          }
-        </pre>
-      </div>
-      <div class="text-center py-1 text-white">${timeDifference}</div>
-  `;
-      // Update the previous slot number for the next message
-      prevSlotNumber = blockEvent.context.slotNumber;
-    }
-    // Function to display RollbackEvent
-    function displayRollbackEvent(rollbackEvent, newDiv) {
-      // Example HTML content specific to RollbackEvent
-      // Calculate time difference
-      const timeDifference = calculateTimeDifference(rollbackEvent);
-      newDiv.innerHTML = `
-<div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black m-4 p-6 rounded-lg shadow-lg">
-  <pre class="mx-auto whitespace-pre-line text-red-600">
-    <span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
-    <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
-    <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-    id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
-    <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
-  </pre>
-</div>
-`;
-      // Only display the time difference if it is not an empty string
-      if (timeDifference !== "") {
-        const timeDifferenceDiv = document.createElement("div");
-        timeDifferenceDiv.classList.add("text-center", "py-1", "text-white");
-        timeDifferenceDiv.innerText = timeDifference;
-        newDiv.appendChild(timeDifferenceDiv);
-      }
-    }
-
-    // Add a global variable to track the view state
+// Add a global variable to track the view state
 let inExtraDataView = false;
-// Function to display TransactionEvent
-function displayTransactionEvent(transactionEvent, newDiv) {
-  const transactionDiv = document.createElement("div");
-  transactionDiv.classList.add("my-2");
-  // Calculate time difference
-  const timeDifference = calculateTimeDifference(transactionEvent);
-  transactionDiv.innerHTML = `
-    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
-      <pre class="mx-auto whitespace-pre-line text-yellow-600">
-        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
-        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
-        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
-        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
-        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span>
-        <span class="whitespace-pre-line text-wrap" id="txHash">${transactionEvent.context.transactionHash}</span>
-        <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
-      </pre>
-      <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
-        ➡️ <!-- Right arrow symbol -->
-      </div>
-    </div>
-  `;
-  // Append the new div to the provided container
-  newDiv.appendChild(transactionDiv);
-  // Display time difference if it's not an empty string
-  if (timeDifference !== "") {
-    const timeDifferenceDiv = document.createElement("div");
-    timeDifferenceDiv.classList.add("text-center", "text-white");
-    timeDifferenceDiv.textContent = timeDifference;
-    newDiv.appendChild(timeDifferenceDiv);
-  }
 
-  // Add event listener for arrow button click
-  const arrowButton = newDiv.querySelector('#arrowButton');
-  arrowButton.addEventListener('click', () => handleRightArrowClick(transactionEvent));
-}
-
-// Placeholder function for right arrow click
-function handleRightArrowClick(transactionEvent) {
-  // Set the view state to "extra data" view
-  inExtraDataView = true;
-
-  // Clear the screen
-  clearScreen();
-
-  // Display extra data
-  displayExtraData(transactionEvent);
-
-  // Add a back button
-  const backButton = document.createElement("button");
-  backButton.innerText = "Go Back";
-  backButton.classList.add("mt-4", "px-4", "py-2", "bg-blue-500", "text-white", "rounded", "hover:bg-blue-700", "focus:outline-none");
-  backButton.onclick = goBack;
-  document.body.appendChild(backButton);
-}
-
-// Function to go back to the main view
-function goBack() {
-  // Reset the view state to "main page" view
-  inExtraDataView = false;
-
-  // Clear the screen
-  clearScreen();
-
-  // Redisplay all events only if not in "extra data" view
-  if (!inExtraDataView) {
-    displayAllEvents();
-  }
-}
-
-// Function to clear the screen
-function clearScreen() {
-  const messagesContainer = document.getElementById("messages-container");
-  messagesContainer.innerHTML = "";
-}
-
-// Function to display only the extra data for a transaction
-function displayExtraData(transactionEvent) {
-  // Create a new div for the extra data
-  const extraDataDiv = document.createElement("div");
-  extraDataDiv.classList.add("zoom-in", "mx-auto", "max-w-5xl", "px-4", "sm:px-6", "lg:px-8", "bg-black", "p-6", "rounded-lg", "shadow-lg");
-
-  // Your logic to extract and display the extra data goes here
-  const extraData = extractExtraData(transactionEvent);
-  extraDataDiv.innerHTML = `
-    <pre class="mx-auto whitespace-pre-line text-white">
-      ${extraData}
-    </pre>
-  `;
-
-  // Append the extra data div to the messages container
-  const messagesContainer = document.getElementById("messages-container");
-  messagesContainer.appendChild(extraDataDiv);
-}
-
-// Function to extract and format the extra data
-function extractExtraData(transactionEvent) {
-  // Your logic to extract and format the extra data goes here
-  // This could involve parsing the transactionEvent.payload and formatting it accordingly
-  // For now, I'll simply return the JSON string representation of the payload
-  return JSON.stringify(transactionEvent.payload, null, 2);
-}
-
-// Function to redisplay all events
-function displayAllEvents() {
-  // Your logic to display all events goes here
-  // This might involve fetching and displaying events from your WebSocket or another data source
-  // For now, you can add sample events to the messages container
-  const messagesContainer = document.getElementById("messages-container");
-  const sampleEventDiv = document.createElement("div");
-  sampleEventDiv.innerText = "Sample Event 1\nSample Event 2\nSample Event 3";
-  messagesContainer.appendChild(sampleEventDiv);
-}
+// Add a global array to store all events in the queue
+let eventQueue = [];
 
 // Add a global array to store new events when in "extra data" view
 let extraDataQueue = [];
+
+// Add a global variable to track the displayed time difference
+let displayedTimeDifference = "";
+
+var socket = new WebSocket("ws://localhost:8080/ws");
 
 // Function to create a new message div
 function createMessageDiv() {
@@ -460,17 +230,142 @@ function handleSocketClose(event) {
   console.log("WebSocket connection closed:", event);
 }
 
-// Set up WebSocket event listeners
-socket.addEventListener("open", handleSocketOpen);
-socket.addEventListener("error", handleSocketError);
-socket.addEventListener("close", handleSocketClose);
-socket.addEventListener("message", handleRefreshMessage);
-socket.addEventListener("message", handleWebSocketMessage);
+// Function to handle WebSocket message event
+function handleWebSocketMessage(event) {
+  const eventData = JSON.parse(event.data);
+  const newDiv = createMessageDiv();
+
+  // Store all events in the queue
+  eventQueue.push({ eventData, newDiv });
+
+  if (inExtraDataView) {
+    // Store new events in the queue when in "extra data" view
+    extraDataQueue.push({ eventData, newDiv });
+  } else {
+    // Display events directly when in the main view
+    switch (eventData.type) {
+      case "chainsync.block":
+        displayBlockEvent(eventData, newDiv);
+        break;
+      case "chainsync.rollback":
+        displayRollbackEvent(eventData, newDiv);
+        break;
+      case "chainsync.transaction":
+        displayTransactionEvent(eventData, newDiv);
+        break;
+      default:
+        console.log("Unknown event type:", eventData.type);
+    }
+
+    insertMessageDiv(newDiv);
+  }
+}
+
+// Function to redisplay all events
+function displayAllEvents() {
+  // Display all events from the queue
+  eventQueue.forEach(({ eventData, newDiv }) => {
+    switch (eventData.type) {
+      case "chainsync.block":
+        displayBlockEvent(eventData, newDiv);
+        break;
+      case "chainsync.rollback":
+        displayRollbackEvent(eventData, newDiv);
+        break;
+      case "chainsync.transaction":
+        displayTransactionEvent(eventData, newDiv);
+        break;
+      default:
+        console.log("Unknown event type:", eventData.type);
+    }
+
+    insertMessageDiv(newDiv);
+  });
+}
+
+// Function to handle back button click
+function goBack() {
+  // Reset the view state to "main page" view
+  inExtraDataView = false;
+
+  // Clear the screen
+  clearScreen();
+
+  // Redisplay all events
+  displayAllEvents();
+
+  // Remove the "Go Back" button
+  removeGoBackButton();
+}
+
+// Function to remove the "Go Back" button
+function removeGoBackButton() {
+  const goBackButton = document.getElementById("goBackButton");
+  if (goBackButton) {
+    goBackButton.parentNode.removeChild(goBackButton);
+  }
+}
+
+// Function to clear the screen
+function clearScreen() {
+  const messagesContainer = document.getElementById("messages-container");
+  messagesContainer.innerHTML = "";
+}
+
+// Function to display only the extra data for a transaction
+function displayExtraData(transactionEvent) {
+  // Create a new div for the extra data
+  const extraDataDiv = document.createElement("div");
+  extraDataDiv.classList.add("zoom-in", "mx-auto", "max-w-5xl", "px-4", "sm:px-6", "lg:px-8", "bg-black", "p-6", "rounded-lg", "shadow-lg");
+
+  // Your logic to extract and display the extra data goes here
+  const extraData = extractExtraData(transactionEvent);
+  extraDataDiv.innerHTML = `
+    <pre class="mx-auto whitespace-pre-line text-white">
+      ${extraData}
+    </pre>
+  `;
+
+  // Append the extra data div to the messages container
+  const messagesContainer = document.getElementById("messages-container");
+  messagesContainer.appendChild(extraDataDiv);
+}
+
+// Function to display all events
+function displayAllEvents() {
+  // Display all events from the queue
+  eventQueue.forEach(({ eventData, newDiv }) => {
+    switch (eventData.type) {
+      case "chainsync.block":
+        displayBlockEvent(eventData, newDiv);
+        break;
+      case "chainsync.rollback":
+        displayRollbackEvent(eventData, newDiv);
+        break;
+      case "chainsync.transaction":
+        displayTransactionEvent(eventData, newDiv);
+        break;
+      default:
+        console.log("Unknown event type:", eventData.type);
+    }
+
+    insertMessageDiv(newDiv);
+  });
+}
+
+// Function to handle WebSocket message event
+function handleRefreshMessage(event) {
+  // Your logic to handle refresh messages goes here
+  // This might involve updating the UI or triggering a data refresh
+}
 
 // Function to handle WebSocket message event
 function handleWebSocketMessage(event) {
   const eventData = JSON.parse(event.data);
   const newDiv = createMessageDiv();
+
+  // Store all events in the queue
+  eventQueue.push({ eventData, newDiv });
 
   if (inExtraDataView) {
     // Store new events in the queue when in "extra data" view
@@ -501,6 +396,108 @@ function handleRefreshMessage(event) {
   // This might involve updating the UI or triggering a data refresh
 }
 
+// Function to display TransactionEvent
+function displayTransactionEvent(transactionEvent, newDiv) {
+  const transactionDiv = document.createElement("div");
+  transactionDiv.classList.add("my-2");
+
+  // Calculate time difference
+  const timeDifference = calculateTimeDifference(transactionEvent);
+  displayedTimeDifference = timeDifference; // Store the displayed time difference
+
+  // Dynamically create the link for each transaction
+  const txLink = document.createElement("a");
+  txLink.href = `#tx-${transactionEvent.context.transactionHash}`;
+  txLink.textContent = "View Transaction Details";
+
+  transactionDiv.innerHTML = `
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
+      <pre class="mx-auto whitespace-pre-line text-yellow-600">
+        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
+        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
+        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
+        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
+        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span>
+        <span class="whitespace-pre-line text-wrap" id="txHash">${transactionEvent.context.transactionHash}</span>
+        <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
+      </pre>
+      <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
+        ➡️ <!-- Right arrow symbol -->
+      </div>
+      <div class="mt-2">
+        ${txLink.outerHTML}
+      </div>
+    </div>
+  `;
+
+  // Append the new div to the provided container
+  newDiv.appendChild(transactionDiv);
+
+  // Display time difference if it's not an empty string
+  if (timeDifference !== "") {
+    const timeDifferenceDiv = document.createElement("div");
+    timeDifferenceDiv.classList.add("text-center", "text-white");
+    timeDifferenceDiv.textContent = timeDifference;
+    newDiv.appendChild(timeDifferenceDiv);
+  }
+
+  // Add event listener for arrow button click
+  const arrowButton = newDiv.querySelector('#arrowButton');
+  arrowButton.addEventListener('click', () => handleRightArrowClick(transactionEvent));
+}
+
+// Placeholder function for right arrow click
+function handleRightArrowClick(transactionEvent) {
+  // Set the view state to "extra data" view
+  inExtraDataView = true;
+
+  // Clear the screen
+  clearScreen();
+
+  // Display extra data
+  displayExtraData(transactionEvent);
+
+  // Add a back button if it doesn't exist
+  if (!document.getElementById("goBackButton")) {
+    const backButton = document.createElement("button");
+    backButton.id = "goBackButton";
+    backButton.innerText = "Go Back";
+    backButton.classList.add("mt-4", "px-4", "py-2", "bg-blue-500", "text-white", "rounded", "hover:bg-blue-700", "focus:outline-none");
+    backButton.onclick = goBack;
+    document.body.appendChild(backButton);
+  }
+}
+
+// Function to calculate time difference
+function calculateTimeDifference(transactionEvent) {
+  // Calculate the time difference between the current event and the previously displayed event
+  if (displayedTimeDifference !== "") {
+    const previousEventTimestamp = eventQueue[eventQueue.length - 2]?.eventData.timestamp;
+    if (previousEventTimestamp) {
+      const currentEventTimestamp = transactionEvent.timestamp;
+      const timeDifferenceMillis = new Date(currentEventTimestamp) - new Date(previousEventTimestamp);
+      const timeDifferenceSeconds = timeDifferenceMillis / 1000;
+      return `Time between events: ${timeDifferenceSeconds.toFixed(2)} seconds`;
+    }
+  }
+
+  return "";
+}
+
+// Function to extract and format the extra data
+function extractExtraData(transactionEvent) {
+  // Your logic to extract and format the extra data goes here
+  // This could involve parsing the transactionEvent.payload and formatting it accordingly
+  // For now, I'll simply return the JSON string representation of the payload
+  return JSON.stringify(transactionEvent.payload, null, 2);
+}
+
+// Set up WebSocket event listeners
+socket.addEventListener("open", handleSocketOpen);
+socket.addEventListener("error", handleSocketError);
+socket.addEventListener("close", handleSocketClose);
+socket.addEventListener("message", handleRefreshMessage);
+socket.addEventListener("message", handleWebSocketMessage);
 
 
   </script>

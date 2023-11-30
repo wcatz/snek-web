@@ -177,3 +177,75 @@ return `${minutes} minutes ${remainingSeconds} seconds`;
 }
 }
 
+
+// Function to display BlockEvent
+function displayBlockEvent(blockEvent, newDiv) {
+  // Convert block size to kilobytes
+  const blockBodySize = blockEvent.payload.blockBodySize;
+  const blockBodySizeKB = blockBodySize / 1024;
+  // Full block size in kilobytes
+  const fullBlockSize = 90112;
+  // Calculate percentage full based on kilobytes
+  const percentageFull = (blockBodySizeKB / (fullBlockSize / 1024)) * 100;
+  // Calculate time difference
+  const timeDifference = calculateTimeDifference(blockEvent);
+  newDiv.innerHTML = `
+  <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
+    <pre class="whitespace-pre-line text-green-600 mx-auto">
+      <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
+        blockEvent.type
+      }
+      <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
+        blockEvent.timestamp
+      }
+      <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${
+        blockEvent.context.blockNumber
+      }
+      <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${
+        blockEvent.context.slotNumber
+      }
+      <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
+        2
+      )} KB, ${percentageFull.toFixed(2)}% full
+      <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+      id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${
+        blockEvent.payload.issuerVkey
+      }</span>
+      <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+      id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${
+        blockEvent.payload.blockHash
+      }</span>
+      <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${
+        blockEvent.payload.transactionCount
+      }
+    </pre>
+  </div>
+  <div class="text-center py-1 text-white">${timeDifference}</div>
+`;
+  // Update the previous slot number for the next message
+  prevSlotNumber = blockEvent.context.slotNumber;
+}
+// Function to display RollbackEvent
+function displayRollbackEvent(rollbackEvent, newDiv) {
+  // Example HTML content specific to RollbackEvent
+  // Calculate time difference
+  const timeDifference = calculateTimeDifference(rollbackEvent);
+  newDiv.innerHTML = `
+<div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black m-4 p-6 rounded-lg shadow-lg">
+<pre class="mx-auto whitespace-pre-line text-red-600">
+<span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
+<span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
+<span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
+<span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
+</pre>
+</div>
+`;
+  // Only display the time difference if it is not an empty string
+  if (timeDifference !== "") {
+    const timeDifferenceDiv = document.createElement("div");
+    timeDifferenceDiv.classList.add("text-center", "py-1", "text-white");
+    timeDifferenceDiv.innerText = timeDifference;
+    newDiv.appendChild(timeDifferenceDiv);
+  }
+}
