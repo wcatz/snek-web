@@ -187,230 +187,241 @@
     </div>
   </body>
   <script>
-// Add a global variable to track the view state
-let inExtraDataView = false;
+    // Add a global variable to track the view state
+    let inExtraDataView = false;
 
-// Add a global array to store all events in the queue
-let eventQueue = [];
+    // Add a global array to store all events in the queue
+    let eventQueue = [];
 
-// Add a global array to store new events when in "extra data" view
-let extraDataQueue = [];
+    // Add a global array to store new events when in "extra data" view
+    let extraDataQueue = [];
 
-// Add a global variable to track the displayed time difference
-let displayedTimeDifference = "";
+    // Add a global variable to track the displayed time difference
+    let displayedTimeDifference = "";
 
-var socket = new WebSocket("ws://localhost:8080/ws");
+    var socket = new WebSocket("ws://localhost:8080/ws");
 
-// Function to create a new message div
-function createMessageDiv() {
-  const newDiv = document.createElement("div");
-  newDiv.classList.add("message-block");
-  newDiv.id = "message-" + new Date().getTime();
-  return newDiv;
-}
-
-// Function to insert a message div into the messages container
-function insertMessageDiv(newDiv) {
-  const messagesContainer = document.getElementById("messages-container");
-  messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
-}
-
-// Function to handle WebSocket open event
-function handleSocketOpen(event) {
-  console.log("WebSocket connection opened:", event);
-}
-
-// Function to handle WebSocket error event
-function handleSocketError(event) {
-  console.error("WebSocket error:", event);
-}
-
-// Function to handle WebSocket close event
-function handleSocketClose(event) {
-  console.log("WebSocket connection closed:", event);
-}
-
-// Function to handle WebSocket message event
-function handleWebSocketMessage(event) {
-  const eventData = JSON.parse(event.data);
-  const newDiv = createMessageDiv();
-
-  // Store all events in the queue
-  eventQueue.push({ eventData, newDiv });
-
-  if (inExtraDataView) {
-    // Store new events in the queue when in "extra data" view
-    extraDataQueue.push({ eventData, newDiv });
-  } else {
-    // Display events directly when in the main view
-    switch (eventData.type) {
-      case "chainsync.block":
-        displayBlockEvent(eventData, newDiv);
-        break;
-      case "chainsync.rollback":
-        displayRollbackEvent(eventData, newDiv);
-        break;
-      case "chainsync.transaction":
-        displayTransactionEvent(eventData, newDiv);
-        break;
-      default:
-        console.log("Unknown event type:", eventData.type);
+    // Function to create a new message div
+    function createMessageDiv() {
+      const newDiv = document.createElement("div");
+      newDiv.classList.add("message-block");
+      newDiv.id = "message-" + new Date().getTime();
+      return newDiv;
     }
 
-    insertMessageDiv(newDiv);
-  }
-}
-
-// Function to redisplay all events
-function displayAllEvents() {
-  // Display all events from the queue
-  eventQueue.forEach(({ eventData, newDiv }) => {
-    switch (eventData.type) {
-      case "chainsync.block":
-        displayBlockEvent(eventData, newDiv);
-        break;
-      case "chainsync.rollback":
-        displayRollbackEvent(eventData, newDiv);
-        break;
-      case "chainsync.transaction":
-        displayTransactionEvent(eventData, newDiv);
-        break;
-      default:
-        console.log("Unknown event type:", eventData.type);
+    // Function to insert a message div into the messages container
+    function insertMessageDiv(newDiv) {
+      const messagesContainer = document.getElementById("messages-container");
+      messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
     }
 
-    insertMessageDiv(newDiv);
-  });
-}
+    // Function to handle WebSocket open event
+    function handleSocketOpen(event) {
+      console.log("WebSocket connection opened:", event);
+    }
 
-// Function to handle back button click
-function goBack() {
-  // Reset the view state to "main page" view
-  inExtraDataView = false;
+    // Function to handle WebSocket error event
+    function handleSocketError(event) {
+      console.error("WebSocket error:", event);
+    }
 
-  // Clear the screen
-  clearScreen();
+    // Function to handle WebSocket close event
+    function handleSocketClose(event) {
+      console.log("WebSocket connection closed:", event);
+    }
 
-  // Redisplay all events
-  displayAllEvents();
+    // Function to handle WebSocket message event
+    function handleWebSocketMessage(event) {
+      const eventData = JSON.parse(event.data);
+      const newDiv = createMessageDiv();
 
-  // Remove the "Go Back" button
-  removeGoBackButton();
-}
+      // Store all events in the queue
+      eventQueue.push({ eventData, newDiv });
 
-// Function to remove the "Go Back" button
-function removeGoBackButton() {
-  const goBackButton = document.getElementById("goBackButton");
-  if (goBackButton) {
-    goBackButton.parentNode.removeChild(goBackButton);
-  }
-}
+      if (inExtraDataView) {
+        // Store new events in the queue when in "extra data" view
+        extraDataQueue.push({ eventData, newDiv });
+      } else {
+        // Display events directly when in the main view
+        switch (eventData.type) {
+          case "chainsync.block":
+            displayBlockEvent(eventData, newDiv);
+            break;
+          case "chainsync.rollback":
+            displayRollbackEvent(eventData, newDiv);
+            break;
+          case "chainsync.transaction":
+            displayTransactionEvent(eventData, newDiv);
+            break;
+          default:
+            console.log("Unknown event type:", eventData.type);
+        }
 
-// Function to clear the screen
-function clearScreen() {
-  const messagesContainer = document.getElementById("messages-container");
-  messagesContainer.innerHTML = "";
-}
+        insertMessageDiv(newDiv);
+      }
+    }
 
-// Function to display only the extra data for a transaction
-function displayExtraData(transactionEvent) {
-  // Create a new div for the extra data
-  const extraDataDiv = document.createElement("div");
-  extraDataDiv.classList.add("zoom-in", "mx-auto", "max-w-5xl", "px-4", "sm:px-6", "lg:px-8", "bg-black", "p-6", "rounded-lg", "shadow-lg");
+    // Function to redisplay all events
+    function displayAllEvents() {
+      // Display all events from the queue
+      eventQueue.forEach(({ eventData, newDiv }) => {
+        switch (eventData.type) {
+          case "chainsync.block":
+            displayBlockEvent(eventData, newDiv);
+            break;
+          case "chainsync.rollback":
+            displayRollbackEvent(eventData, newDiv);
+            break;
+          case "chainsync.transaction":
+            displayTransactionEvent(eventData, newDiv);
+            break;
+          default:
+            console.log("Unknown event type:", eventData.type);
+        }
 
-  // Your logic to extract and display the extra data goes here
-  const extraData = extractExtraData(transactionEvent);
-  extraDataDiv.innerHTML = `
+        insertMessageDiv(newDiv);
+      });
+    }
+
+    // Function to handle back button click
+    function goBack() {
+      // Reset the view state to "main page" view
+      inExtraDataView = false;
+
+      // Clear the screen
+      clearScreen();
+
+      // Redisplay all events
+      displayAllEvents();
+
+      // Remove the "Go Back" button
+      removeGoBackButton();
+    }
+
+    // Function to remove the "Go Back" button
+    function removeGoBackButton() {
+      const goBackButton = document.getElementById("goBackButton");
+      if (goBackButton) {
+        goBackButton.parentNode.removeChild(goBackButton);
+      }
+    }
+
+    // Function to clear the screen
+    function clearScreen() {
+      const messagesContainer = document.getElementById("messages-container");
+      messagesContainer.innerHTML = "";
+    }
+
+    // Function to display only the extra data for a transaction
+    function displayExtraData(transactionEvent) {
+      // Create a new div for the extra data
+      const extraDataDiv = document.createElement("div");
+      extraDataDiv.classList.add(
+        "zoom-in",
+        "mx-auto",
+        "max-w-5xl",
+        "px-4",
+        "sm:px-6",
+        "lg:px-8",
+        "bg-black",
+        "p-6",
+        "rounded-lg",
+        "shadow-lg"
+      );
+
+      // Your logic to extract and display the extra data goes here
+      const extraData = extractExtraData(transactionEvent);
+      extraDataDiv.innerHTML = `
     <pre class="mx-auto whitespace-pre-line text-white">
       ${extraData}
     </pre>
   `;
 
-  // Append the extra data div to the messages container
-  const messagesContainer = document.getElementById("messages-container");
-  messagesContainer.appendChild(extraDataDiv);
-}
-
-// Function to display all events
-function displayAllEvents() {
-  // Display all events from the queue
-  eventQueue.forEach(({ eventData, newDiv }) => {
-    switch (eventData.type) {
-      case "chainsync.block":
-        displayBlockEvent(eventData, newDiv);
-        break;
-      case "chainsync.rollback":
-        displayRollbackEvent(eventData, newDiv);
-        break;
-      case "chainsync.transaction":
-        displayTransactionEvent(eventData, newDiv);
-        break;
-      default:
-        console.log("Unknown event type:", eventData.type);
+      // Append the extra data div to the messages container
+      const messagesContainer = document.getElementById("messages-container");
+      messagesContainer.appendChild(extraDataDiv);
     }
 
-    insertMessageDiv(newDiv);
-  });
-}
+    // Function to display all events
+    function displayAllEvents() {
+      // Display all events from the queue
+      eventQueue.forEach(({ eventData, newDiv }) => {
+        switch (eventData.type) {
+          case "chainsync.block":
+            displayBlockEvent(eventData, newDiv);
+            break;
+          case "chainsync.rollback":
+            displayRollbackEvent(eventData, newDiv);
+            break;
+          case "chainsync.transaction":
+            displayTransactionEvent(eventData, newDiv);
+            break;
+          default:
+            console.log("Unknown event type:", eventData.type);
+        }
 
-// Function to handle WebSocket message event
-function handleRefreshMessage(event) {
-  // Your logic to handle refresh messages goes here
-  // This might involve updating the UI or triggering a data refresh
-}
-
-// Function to handle WebSocket message event
-function handleWebSocketMessage(event) {
-  const eventData = JSON.parse(event.data);
-  const newDiv = createMessageDiv();
-
-  // Store all events in the queue
-  eventQueue.push({ eventData, newDiv });
-
-  if (inExtraDataView) {
-    // Store new events in the queue when in "extra data" view
-    extraDataQueue.push({ eventData, newDiv });
-  } else {
-    // Display events directly when in the main view
-    switch (eventData.type) {
-      case "chainsync.block":
-        displayBlockEvent(eventData, newDiv);
-        break;
-      case "chainsync.rollback":
-        displayRollbackEvent(eventData, newDiv);
-        break;
-      case "chainsync.transaction":
-        displayTransactionEvent(eventData, newDiv);
-        break;
-      default:
-        console.log("Unknown event type:", eventData.type);
+        insertMessageDiv(newDiv);
+      });
     }
 
-    insertMessageDiv(newDiv);
-  }
-}
+    // Function to handle WebSocket message event
+    function handleRefreshMessage(event) {
+      // Your logic to handle refresh messages goes here
+      // This might involve updating the UI or triggering a data refresh
+    }
 
-// Function to handle WebSocket message event
-function handleRefreshMessage(event) {
-  // Your logic to handle refresh messages goes here
-  // This might involve updating the UI or triggering a data refresh
-}
+    // Function to handle WebSocket message event
+    function handleWebSocketMessage(event) {
+      const eventData = JSON.parse(event.data);
+      const newDiv = createMessageDiv();
 
-// Function to display TransactionEvent
-function displayTransactionEvent(transactionEvent, newDiv) {
-  const transactionDiv = document.createElement("div");
-  transactionDiv.classList.add("my-2");
+      // Store all events in the queue
+      eventQueue.push({ eventData, newDiv });
 
-  // Calculate time difference
-  const timeDifference = calculateTimeDifference(transactionEvent);
-  displayedTimeDifference = timeDifference; // Store the displayed time difference
+      if (inExtraDataView) {
+        // Store new events in the queue when in "extra data" view
+        extraDataQueue.push({ eventData, newDiv });
+      } else {
+        // Display events directly when in the main view
+        switch (eventData.type) {
+          case "chainsync.block":
+            displayBlockEvent(eventData, newDiv);
+            break;
+          case "chainsync.rollback":
+            displayRollbackEvent(eventData, newDiv);
+            break;
+          case "chainsync.transaction":
+            displayTransactionEvent(eventData, newDiv);
+            break;
+          default:
+            console.log("Unknown event type:", eventData.type);
+        }
 
-  // Dynamically create the link for each transaction
-  const txLink = document.createElement("a");
-  txLink.href = `#tx-${transactionEvent.context.transactionHash}`;
-  txLink.textContent = "View Transaction Details";
+        insertMessageDiv(newDiv);
+      }
+    }
 
-  transactionDiv.innerHTML = `
+    // Function to handle WebSocket message event
+    function handleRefreshMessage(event) {
+      // Your logic to handle refresh messages goes here
+      // This might involve updating the UI or triggering a data refresh
+    }
+
+    // Function to display TransactionEvent
+    function displayTransactionEvent(transactionEvent, newDiv) {
+      const transactionDiv = document.createElement("div");
+      transactionDiv.classList.add("my-2");
+
+      // Calculate time difference
+      const timeDifference = calculateTimeDifference(transactionEvent);
+      displayedTimeDifference = timeDifference; // Store the displayed time difference
+
+      // Dynamically create the link for each transaction
+      const txLink = document.createElement("a");
+      txLink.href = `#tx-${transactionEvent.context.transactionHash}`;
+      txLink.textContent = "View Transaction Details";
+
+      transactionDiv.innerHTML = `
     <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
       <pre class="mx-auto whitespace-pre-line text-yellow-600">
         <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
@@ -430,75 +441,90 @@ function displayTransactionEvent(transactionEvent, newDiv) {
     </div>
   `;
 
-  // Append the new div to the provided container
-  newDiv.appendChild(transactionDiv);
+      // Append the new div to the provided container
+      newDiv.appendChild(transactionDiv);
 
-  // Display time difference if it's not an empty string
-  if (timeDifference !== "") {
-    const timeDifferenceDiv = document.createElement("div");
-    timeDifferenceDiv.classList.add("text-center", "text-white");
-    timeDifferenceDiv.textContent = timeDifference;
-    newDiv.appendChild(timeDifferenceDiv);
-  }
+      // Display time difference if it's not an empty string
+      if (timeDifference !== "") {
+        const timeDifferenceDiv = document.createElement("div");
+        timeDifferenceDiv.classList.add("text-center", "text-white");
+        timeDifferenceDiv.textContent = timeDifference;
+        newDiv.appendChild(timeDifferenceDiv);
+      }
 
-  // Add event listener for arrow button click
-  const arrowButton = newDiv.querySelector('#arrowButton');
-  arrowButton.addEventListener('click', () => handleRightArrowClick(transactionEvent));
-}
-
-// Placeholder function for right arrow click
-function handleRightArrowClick(transactionEvent) {
-  // Set the view state to "extra data" view
-  inExtraDataView = true;
-
-  // Clear the screen
-  clearScreen();
-
-  // Display extra data
-  displayExtraData(transactionEvent);
-
-  // Add a back button if it doesn't exist
-  if (!document.getElementById("goBackButton")) {
-    const backButton = document.createElement("button");
-    backButton.id = "goBackButton";
-    backButton.innerText = "Go Back";
-    backButton.classList.add("mt-4", "px-4", "py-2", "bg-blue-500", "text-white", "rounded", "hover:bg-blue-700", "focus:outline-none");
-    backButton.onclick = goBack;
-    document.body.appendChild(backButton);
-  }
-}
-
-// Function to calculate time difference
-function calculateTimeDifference(transactionEvent) {
-  // Calculate the time difference between the current event and the previously displayed event
-  if (displayedTimeDifference !== "") {
-    const previousEventTimestamp = eventQueue[eventQueue.length - 2]?.eventData.timestamp;
-    if (previousEventTimestamp) {
-      const currentEventTimestamp = transactionEvent.timestamp;
-      const timeDifferenceMillis = new Date(currentEventTimestamp) - new Date(previousEventTimestamp);
-      const timeDifferenceSeconds = timeDifferenceMillis / 1000;
-      return `Time between events: ${timeDifferenceSeconds.toFixed(2)} seconds`;
+      // Add event listener for arrow button click
+      const arrowButton = newDiv.querySelector("#arrowButton");
+      arrowButton.addEventListener("click", () =>
+        handleRightArrowClick(transactionEvent)
+      );
     }
-  }
 
-  return "";
-}
+    // Placeholder function for right arrow click
+    function handleRightArrowClick(transactionEvent) {
+      // Set the view state to "extra data" view
+      inExtraDataView = true;
 
-// Function to extract and format the extra data
-function extractExtraData(transactionEvent) {
-  // Your logic to extract and format the extra data goes here
-  // This could involve parsing the transactionEvent.payload and formatting it accordingly
-  // For now, I'll simply return the JSON string representation of the payload
-  return JSON.stringify(transactionEvent.payload, null, 2);
-}
+      // Clear the screen
+      clearScreen();
 
-// Set up WebSocket event listeners
-socket.addEventListener("open", handleSocketOpen);
-socket.addEventListener("error", handleSocketError);
-socket.addEventListener("close", handleSocketClose);
-socket.addEventListener("message", handleRefreshMessage);
-socket.addEventListener("message", handleWebSocketMessage);
+      // Display extra data
+      displayExtraData(transactionEvent);
 
+      // Add a back button if it doesn't exist
+      if (!document.getElementById("goBackButton")) {
+        const backButton = document.createElement("button");
+        backButton.id = "goBackButton";
+        backButton.innerText = "Go Back";
+        backButton.classList.add(
+          "absolute",
+          "top-10",
+          "left-4",
+          "px-4",
+          "py-2",
+          "bg-transparent",
+          "text-white",
+          "rounded",
+          "hover:bg-transparent",
+          "focus:outline-none"
+        );
+        backButton.onclick = goBack;
+        document.body.appendChild(backButton);
+      }
+    }
 
+    // Function to calculate time difference
+    function calculateTimeDifference(transactionEvent) {
+      // Calculate the time difference between the current event and the previously displayed event
+      if (displayedTimeDifference !== "") {
+        const previousEventTimestamp =
+          eventQueue[eventQueue.length - 2]?.eventData.timestamp;
+        if (previousEventTimestamp) {
+          const currentEventTimestamp = transactionEvent.timestamp;
+          const timeDifferenceMillis =
+            new Date(currentEventTimestamp) - new Date(previousEventTimestamp);
+          const timeDifferenceSeconds = timeDifferenceMillis / 1000;
+          return `Time between events: ${timeDifferenceSeconds.toFixed(
+            2
+          )} seconds`;
+        }
+      }
+
+      return "";
+    }
+
+    // Function to extract and format the extra data
+    function extractExtraData(transactionEvent) {
+      // Your logic to extract and format the extra data goes here
+      // This could involve parsing the transactionEvent.payload and formatting it accordingly
+      // For now, I'll simply return the JSON string representation of the payload
+      return JSON.stringify(transactionEvent.payload, null, 2);
+    }
+
+    // Set up WebSocket event listeners
+    socket.addEventListener("open", handleSocketOpen);
+    socket.addEventListener("error", handleSocketError);
+    socket.addEventListener("close", handleSocketClose);
+    socket.addEventListener("message", handleRefreshMessage);
+    socket.addEventListener("message", handleWebSocketMessage);
   </script>
 </html>
