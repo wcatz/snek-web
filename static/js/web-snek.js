@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Close menu when clicking the close button
   closeButton.addEventListener("click", toggleMenu);
 
-  // Close menu when clicking outside the menu or pressing the Escape key
+  // Close menu when clicking outside the menu
   document.addEventListener("mousedown", function (event) {
     if (
       !offcanvasMenu.contains(event.target) &&
@@ -131,8 +131,8 @@ function goToTop() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
- // Function to calculate time difference based on slot number
- function calculateTimeDifference(currentEvent) {
+// Function to calculate time difference based on slot number
+function calculateTimeDifference(currentEvent) {
   let timeDifference = "";
 
   // Check if previous slot number is defined
@@ -141,10 +141,10 @@ function goToTop() {
       currentEvent.type === "chainsync.block"
         ? currentEvent.context.slotNumber
         : currentEvent.type === "chainsync.rollback"
-        ? currentEvent.payload.slotNumber
-        : currentEvent.type === "chainsync.transaction"
-        ? currentEvent.context.slotNumber
-        : 0; // Assuming slot number for transaction type is available in context
+          ? currentEvent.payload.slotNumber
+          : currentEvent.type === "chainsync.transaction"
+            ? currentEvent.context.slotNumber
+            : 0; // Assuming slot number for transaction type is available in context
 
     // Only calculate time difference if transitioning from a block to another
     if (
@@ -162,10 +162,10 @@ function goToTop() {
     currentEvent.type === "chainsync.block"
       ? currentEvent.context.slotNumber
       : currentEvent.type === "chainsync.rollback"
-      ? currentEvent.payload.slotNumber
-      : currentEvent.type === "chainsync.transaction"
-      ? currentEvent.context.slotNumber
-      : prevSlotNumber; // Keep the previous value for unknown event types
+        ? currentEvent.payload.slotNumber
+        : currentEvent.type === "chainsync.transaction"
+          ? currentEvent.context.slotNumber
+          : prevSlotNumber; // Keep the previous value for unknown event types
 
   return timeDifference;
 }
@@ -181,45 +181,42 @@ function formatTimeDifference(slotsDiff) {
   }
 }
 
-    // Function to handle back button click
-    function goBack() {
-      if (inExtraDataView) {
-        // Reset the view state to "main page" view only if inExtraDataView is true
-        inExtraDataView = false;
-        // Clear the screen
-        clearScreen();
-        // Redisplay all events
-        displayAllEvents();
-        // Handle extra data events if any
-        const { eventData, newDiv } = eventQueue[eventQueue.length - 1];
-        handleExtraDataEvents(eventData, newDiv);
-      }
-    }
-    
-        // Function to remove the "Go Back" button
-        function removeGoBackButton() {
-          const goBackButton = document.getElementById("goBackButton");
-          if (goBackButton) {
-            goBackButton.parentNode.removeChild(goBackButton);
-          }
-        }
+// Function to handle back button click
+function goBack() {
+  if (inExtraDataView) {
+    // Reset the view state to "main page" view only if inExtraDataView is true
+    inExtraDataView = false;
+    // Clear the screen
+    clearScreen();
+    // Redisplay all events
+    displayAllEvents();
+    // Handle extra data events if any
+    const { eventData, newDiv } = messageArray[messageArray.length - 1];
+    handleExtraDataEvents(eventData, newDiv);
+  }
+}
 
-   // Function to handle right arrow click
-   function handleRightArrowClick(transactionEvent) {
-      // Store the current scroll position
-      const currentScrollPosition = window.scrollY;
-      // Set the view state to "extra data" view
-      inExtraDataView = true;
-      // Clear the screen
-      clearScreen();
-      // Display extra data
-      displayExtraData(transactionEvent);
-      // Scroll to the top of the page
-      window.scrollTo({ top: 0, behavior: "smooth" });
-   }
+// Function to remove the "Go Back" button
+function removeGoBackButton() {
+  const goBackButton = document.getElementById("goBackButton");
+  if (goBackButton) {
+    goBackButton.parentNode.removeChild(goBackButton);
+  }
+}
 
-
-
+// Function to handle right arrow click
+function handleRightArrowClick(transactionEvent) {
+  // Store the current scroll position
+  const currentScrollPosition = window.scrollY;
+  // Set the view state to "extra data" view
+  inExtraDataView = true;
+  // Clear the screen
+  clearScreen();
+  // Display extra data
+  displayExtraData(transactionEvent);
+  // Scroll to the top of the page
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 // Function to display BlockEvent
 function displayBlockEvent(blockEvent, newDiv) {
@@ -261,6 +258,7 @@ function displayBlockEvent(blockEvent, newDiv) {
   // Update the previous slot number for the next message
   prevSlotNumber = blockEvent.context.slotNumber;
 }
+
 // Function to display RollbackEvent
 function displayRollbackEvent(rollbackEvent, newDiv) {
   // Example HTML content specific to RollbackEvent
@@ -286,7 +284,6 @@ id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollback
   }
 }
 
-
 // Function to display TransactionEvent
 function displayTransactionEvent(transactionEvent, newDiv) {
   const transactionDiv = document.createElement("div");
@@ -300,7 +297,7 @@ function displayTransactionEvent(transactionEvent, newDiv) {
   const txLink = document.createElement("a");
   const transactionHash = transactionEvent.context.transactionHash;
   const linkId = `tx-link-${transactionHash}`;
-  console.log("Generated Link ID:", linkId); // Log the generated ID
+  // console.log("Generated Link ID:", linkId); // Log the generated ID
   txLink.href = `#${linkId}`;
   txLink.id = linkId;
 

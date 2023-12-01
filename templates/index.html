@@ -189,14 +189,15 @@
   <script>
     let prevSlotNumber;
     let inExtraDataView = false;
-    let eventQueue = [];
+    let messageArray = [];
+    let messageIdCounter = 0;
     var socket = new WebSocket("ws://localhost:8080/ws");
 
-    // Function to create a new message div with a unique id based on timestamp
+    // Function to create a new message div with a unique id
     function createMessageDiv() {
       const newDiv = document.createElement("div");
       newDiv.classList.add("message-block");
-      newDiv.id = "message-" + new Date().getTime();
+      newDiv.id = `message-${messageIdCounter++}`;
       return newDiv;
     }
 
@@ -230,8 +231,8 @@
     function handleWebSocketMessage(event) {
       const eventData = JSON.parse(event.data);
       const newDiv = createMessageDiv();
-      // Store all events in the queue
-      eventQueue.push({ eventData, newDiv });
+      // Store all events in the array
+      messageArray.push({ eventData, newDiv });
       // Display events based on the view state
       if (!inExtraDataView) {
         displayEvent(eventData, newDiv);
@@ -260,8 +261,8 @@
 
     // Function to redisplay all events
     function displayAllEvents() {
-      // Display all events from the queue
-      eventQueue.forEach(({ eventData, newDiv }) => {
+      // Display all events from the array
+      messageArray.forEach(({ eventData, newDiv }) => {
         switch (eventData.type) {
           case "chainsync.block":
             displayBlockEvent(eventData, newDiv);
@@ -278,7 +279,7 @@
         insertMessageDiv(newDiv);
       });
     }
-    
+
     // Function to handle extra data events
     function handleExtraDataEvents(eventData, newDiv) {
       // Check the event type and handle it accordingly
@@ -291,10 +292,9 @@
       }
     }
 
-
     // Function to display extra data view
     function displayExtraDataView() {
-      const { eventData, newDiv } = eventQueue[eventQueue.length - 1];
+      const { eventData, newDiv } = messageArray[messageArray.length - 1];
       handleExtraDataEvents(eventData, newDiv);
     }
 
