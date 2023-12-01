@@ -1,5 +1,3 @@
-let prevSlotNumber
-
 function copyToClipboard(element, property) {
   const propertySpan = element;
   const tempInput = document.createElement("textarea");
@@ -133,49 +131,6 @@ function goToTop() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Function to calculate time difference based on slot number
-function calculateTimeDifference(currentEvent) {
-let timeDifference = "";
-
-// Check if previous slot number is defined
-if (prevSlotNumber !== undefined) {
-// Determine the slot number based on the event type
-const currentSlotNumber =
-  currentEvent.type === "chainsync.block"
-    ? currentEvent.context.slotNumber
-    : currentEvent.type === "chainsync.rollback"
-    ? currentEvent.payload.slotNumber
-    : currentEvent.context.slotNumber;
-
-// Only calculate time difference if the slot number has increased
-if (currentSlotNumber > prevSlotNumber) {
-  // Calculate time difference based on the slot number of the current event
-  const slotsDiff = Math.abs(currentSlotNumber - prevSlotNumber);
-  timeDifference = formatTimeDifference(slotsDiff);
-}
-}
-
-// Update the previous slot number for the next message
-prevSlotNumber =
-currentEvent.type === "chainsync.block"
-  ? currentEvent.context.slotNumber
-  : currentEvent.type === "chainsync.rollback"
-  ? currentEvent.payload.slotNumber
-  : currentEvent.context.slotNumber;
-
-return timeDifference;
-}
-
-// Function to format time difference in a human-readable format
-function formatTimeDifference(slotsDiff) {
-if (slotsDiff < 60) {
-return `${slotsDiff} seconds`;
-} else {
-const minutes = Math.floor(slotsDiff / 60);
-const remainingSeconds = slotsDiff % 60;
-return `${minutes} minutes ${remainingSeconds} seconds`;
-}
-}
 
 
 // Function to display BlockEvent
@@ -192,32 +147,25 @@ function displayBlockEvent(blockEvent, newDiv) {
   newDiv.innerHTML = `
   <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
     <pre class="whitespace-pre-line text-green-600 mx-auto">
-      <span class="text-blue-400">Type</span><span class="text-white">:</span> ${
-        blockEvent.type
-      }
-      <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${
-        blockEvent.timestamp
-      }
-      <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${
-        blockEvent.context.blockNumber
-      }
-      <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${
-        blockEvent.context.slotNumber
-      }
+      <span class="text-blue-400">Type</span><span class="text-white">:</span> ${blockEvent.type
+    }
+      <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${blockEvent.timestamp
+    }
+      <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${blockEvent.context.blockNumber
+    }
+      <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${blockEvent.context.slotNumber
+    }
       <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
-        2
-      )} KB, ${percentageFull.toFixed(2)}% full
+      2
+    )} KB, ${percentageFull.toFixed(2)}% full
       <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-      id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${
-        blockEvent.payload.issuerVkey
-      }</span>
+      id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${blockEvent.payload.issuerVkey
+    }</span>
       <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-      id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${
-        blockEvent.payload.blockHash
-      }</span>
-      <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${
-        blockEvent.payload.transactionCount
-      }
+      id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${blockEvent.payload.blockHash
+    }</span>
+      <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${blockEvent.payload.transactionCount
+    }
     </pre>
   </div>
   <div class="text-center py-1 text-white">${timeDifference}</div>
