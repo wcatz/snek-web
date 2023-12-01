@@ -241,16 +241,6 @@
       }
     }
 
-    // Function to handle back button click
-    function goBack() {
-      // Reset the view state to "main page" view
-      inExtraDataView = false;
-      // Clear the screen
-      clearScreen();
-      // Redisplay all events
-      displayAllEvents();
-    }
-
     // Function to handle WebSocket open event
     function handleSocketOpen(event) {
       console.log("WebSocket connection opened:", event);
