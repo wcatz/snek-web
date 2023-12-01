@@ -187,15 +187,9 @@
     </div>
   </body>
   <script>
-    let prevSlotNumber
-    // Add a global variable to track the view state
+    let prevSlotNumber;
     let inExtraDataView = false;
-    // Add a global array to store all events in the queue
     let eventQueue = [];
-    // Add a global array to store new events when in "extra data" view
-    let extraDataQueue = [];
-    // Add a global variable to track the displayed time difference
-
     var socket = new WebSocket("ws://localhost:8080/ws");
 
     // Function to create a new message div with a unique id based on timestamp
@@ -210,6 +204,11 @@
     function insertMessageDiv(newDiv) {
       const messagesContainer = document.getElementById("messages-container");
       messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
+    }
+    // Function to clear the screen
+    function clearScreen() {
+      const messagesContainer = document.getElementById("messages-container");
+      messagesContainer.innerHTML = "";
     }
 
     // Function to handle WebSocket open event
@@ -231,30 +230,31 @@
     function handleWebSocketMessage(event) {
       const eventData = JSON.parse(event.data);
       const newDiv = createMessageDiv();
-
       // Store all events in the queue
       eventQueue.push({ eventData, newDiv });
-
-      if (inExtraDataView) {
-        // Store new events in the queue when in "extra data" view
-        extraDataQueue.push({ eventData, newDiv });
+      // Display events based on the view state
+      if (!inExtraDataView) {
+        displayEvent(eventData, newDiv);
       } else {
-        // Display events directly when in the main view
-        switch (eventData.type) {
-          case "chainsync.block":
-            displayBlockEvent(eventData, newDiv);
-            break;
-          case "chainsync.rollback":
-            displayRollbackEvent(eventData, newDiv);
-            break;
-          case "chainsync.transaction":
-            displayTransactionEvent(eventData, newDiv);
-            break;
-          default:
-            console.log("Unknown event type:", eventData.type);
-        }
+        displayExtraDataView();
+      }
+      insertMessageDiv(newDiv);
+    }
 
-        insertMessageDiv(newDiv);
+    // Function to display events
+    function displayEvent(eventData, newDiv) {
+      switch (eventData.type) {
+        case "chainsync.block":
+          displayBlockEvent(eventData, newDiv);
+          break;
+        case "chainsync.rollback":
+          displayRollbackEvent(eventData, newDiv);
+          break;
+        case "chainsync.transaction":
+          displayTransactionEvent(eventData, newDiv);
+          break;
+        default:
+          console.log("Unknown event type:", eventData.type);
       }
     }
 
@@ -275,43 +275,32 @@
           default:
             console.log("Unknown event type:", eventData.type);
         }
-
         insertMessageDiv(newDiv);
       });
     }
-
-    // Function to handle back button click
-    function goBack() {
-      // Reset the view state to "main page" view
-      inExtraDataView = false;
-
-      // Clear the screen
-      clearScreen();
-
-      // Redisplay all events
-      displayAllEvents();
-
-      // Remove the "Go Back" button
-      removeGoBackButton();
-    }
-
-    // Function to remove the "Go Back" button
-    function removeGoBackButton() {
-      const goBackButton = document.getElementById("goBackButton");
-      if (goBackButton) {
-        goBackButton.parentNode.removeChild(goBackButton);
+    
+    // Function to handle extra data events
+    function handleExtraDataEvents(eventData, newDiv) {
+      // Check the event type and handle it accordingly
+      switch (eventData.type) {
+        case "chainsync.transaction":
+          displayExtraData(eventData, newDiv);
+          break;
+        default:
+          console.log("Unknown extra data event type:", eventData.type);
       }
     }
 
-    // Function to clear the screen
-    function clearScreen() {
-      const messagesContainer = document.getElementById("messages-container");
-      messagesContainer.innerHTML = "";
+
+    // Function to display extra data view
+    function displayExtraDataView() {
+      const { eventData, newDiv } = eventQueue[eventQueue.length - 1];
+      handleExtraDataEvents(eventData, newDiv);
     }
 
-    // Function to display only the extra data for a transaction
-    function displayExtraData(transactionEvent) {
-      // Create a new div for the extra data
+    // Function to display extra data
+    function displayExtraData(transactionEvent, newDiv) {
+      // Create a new div for the extra data and left arrow
       const extraDataDiv = document.createElement("div");
       extraDataDiv.classList.add(
         "zoom-in",
@@ -323,7 +312,8 @@
         "bg-black",
         "p-6",
         "rounded-lg",
-        "shadow-lg"
+        "shadow-lg",
+        "relative"
       );
 
       // logic to extract and display the extra data goes here
@@ -333,210 +323,31 @@
       ${extraData}
     </pre>
   `;
-
+      // Append the left arrow to the extra data div
+      const leftArrowDiv = document.createElement("div");
+      leftArrowDiv.classList.add(
+        "absolute",
+        "top-0", // Adjusted to top-0 for top corner
+        "left-0", // Adjusted to left-0 for left corner
+        "cursor-pointer",
+        "text-white",
+        "text-2xl"
+      );
+      leftArrowDiv.innerHTML = "⬅️"; // Left arrow symbol
+      // Add an event listener to handle left arrow click
+      leftArrowDiv.addEventListener("click", () => {
+        // Go back to the main view
+        goBack();
+      });
+      // Append the left arrow to the extra data div
+      extraDataDiv.appendChild(leftArrowDiv);
       // Append the extra data div to the messages container
       const messagesContainer = document.getElementById("messages-container");
       messagesContainer.appendChild(extraDataDiv);
     }
 
-    // Function to display all events
-    function displayAllEvents() {
-      // Display all events from the queue
-      eventQueue.forEach(({ eventData, newDiv }) => {
-        switch (eventData.type) {
-          case "chainsync.block":
-            displayBlockEvent(eventData, newDiv);
-            break;
-          case "chainsync.rollback":
-            displayRollbackEvent(eventData, newDiv);
-            break;
-          case "chainsync.transaction":
-            displayTransactionEvent(eventData, newDiv);
-            break;
-          default:
-            console.log("Unknown event type:", eventData.type);
-        }
-
-        insertMessageDiv(newDiv);
-      });
-    }
-
-    // Function to handle WebSocket message event
-    function handleWebSocketMessage(event) {
-      const eventData = JSON.parse(event.data);
-      const newDiv = createMessageDiv();
-
-      // Store all events in the queue
-      eventQueue.push({ eventData, newDiv });
-
-      if (inExtraDataView) {
-        // Store new events in the queue when in "extra data" view
-        extraDataQueue.push({ eventData, newDiv });
-      } else {
-        // Display events directly when in the main view
-        switch (eventData.type) {
-          case "chainsync.block":
-            displayBlockEvent(eventData, newDiv);
-            break;
-          case "chainsync.rollback":
-            displayRollbackEvent(eventData, newDiv);
-            break;
-          case "chainsync.transaction":
-            displayTransactionEvent(eventData, newDiv);
-            break;
-          default:
-            console.log("Unknown event type:", eventData.type);
-        }
-
-        insertMessageDiv(newDiv);
-      }
-    }
-
-     // Function to calculate time difference based on slot number
-     function calculateTimeDifference(currentEvent) {
-      let timeDifference = "";
-
-      // Check if previous slot number is defined
-      if (prevSlotNumber !== undefined) {
-        const currentSlotNumber =
-          currentEvent.type === "chainsync.block"
-            ? currentEvent.context.slotNumber
-            : currentEvent.type === "chainsync.rollback"
-            ? currentEvent.payload.slotNumber
-            : currentEvent.type === "chainsync.transaction"
-            ? currentEvent.context.slotNumber
-            : 0; // Assuming slot number for transaction type is available in context
-
-        // Only calculate time difference if transitioning from a block to another
-        if (
-          (currentEvent.type === "chainsync.block" ||
-            currentEvent.type === "chainsync.transaction") &&
-          prevSlotNumber !== currentSlotNumber
-        ) {
-          const slotsDiff = Math.abs(currentSlotNumber - prevSlotNumber);
-          timeDifference = formatTimeDifference(slotsDiff);
-        }
-      }
-
-      // Update the previous slot number for the next message
-      prevSlotNumber =
-        currentEvent.type === "chainsync.block"
-          ? currentEvent.context.slotNumber
-          : currentEvent.type === "chainsync.rollback"
-          ? currentEvent.payload.slotNumber
-          : currentEvent.type === "chainsync.transaction"
-          ? currentEvent.context.slotNumber
-          : prevSlotNumber; // Keep the previous value for unknown event types
-
-      return timeDifference;
-    }
-
-    // Function to format time difference in a human-readable format
-    function formatTimeDifference(slotsDiff) {
-      if (slotsDiff < 60) {
-        return `${slotsDiff} seconds`;
-      } else {
-        const minutes = Math.floor(slotsDiff / 60);
-        const remainingSeconds = slotsDiff % 60;
-        return `${minutes} minutes ${remainingSeconds} seconds`;
-      }
-    }
-
-    // Function to display TransactionEvent
-    function displayTransactionEvent(transactionEvent, newDiv) {
-      const transactionDiv = document.createElement("div");
-      transactionDiv.classList.add("my-2");
-
-      // Calculate time difference
-      const timeDifference = calculateTimeDifference(transactionEvent);
-      displayedTimeDifference = timeDifference; // Store the displayed time difference
-
-      // Dynamically create the link for each transaction
-      const txLink = document.createElement("a");
-      const transactionHash = transactionEvent.context.transactionHash;
-      const linkId = `tx-link-${transactionHash}`;
-      console.log("Generated Link ID:", linkId); // Log the generated ID
-      txLink.href = `#${linkId}`;
-      txLink.id = linkId;
-
-      transactionDiv.innerHTML = `
-    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
-      <div class="mt-2">
-        ${txLink.outerHTML}
-      </div>
-      <pre class="mx-auto whitespace-pre-line text-yellow-600">
-        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
-        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
-        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
-        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
-        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-          id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
-          <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
-      </pre>
-      <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
-        ➡️ <!-- Right arrow symbol -->
-      </div>
-    </div>
-  `;
-
-      // Check if the block number has increased
-      if (timeDifference !== "") {
-        const timeDifferenceDiv = document.createElement("div");
-        timeDifferenceDiv.classList.add("text-center", "text-white");
-        timeDifferenceDiv.textContent = timeDifference;
-        transactionDiv.appendChild(timeDifferenceDiv);
-      }
-
-      // Append the new div to the provided container
-      newDiv.appendChild(transactionDiv);
-
-      // Add event listener for arrow button click
-      const arrowButton = newDiv.querySelector("#arrowButton");
-      arrowButton.addEventListener("click", () =>
-        handleRightArrowClick(transactionEvent)
-      );
-    }
-
-    // Placeholder function for right arrow click
-    function handleRightArrowClick(transactionEvent) {
-      // Set the view state to "extra data" view
-      inExtraDataView = true;
-
-      // Clear the screen
-      clearScreen();
-
-      // Display extra data
-      displayExtraData(transactionEvent);
-
-      // Add a back button if it doesn't exist
-      if (!document.getElementById("goBackButton")) {
-        const backButton = document.createElement("button");
-        backButton.id = "goBackButton";
-        backButton.innerText = "Go Back";
-        backButton.classList.add(
-          "absolute",
-          "top-10",
-          "left-4",
-          "px-4",
-          "py-2",
-          "bg-transparent",
-          "text-white",
-          "rounded",
-          "hover:bg-transparent",
-          "focus:outline-none"
-        );
-        backButton.onclick = goBack;
-        document.body.appendChild(backButton);
-      }
-    }
-
-
-
     // Function to extract and format the extra data
     function extractExtraData(transactionEvent) {
-      // Your logic to extract and format the extra data goes here
-      // This could involve parsing the transactionEvent.payload and formatting it accordingly
-      // For now, I'll simply return the JSON string representation of the payload
       return JSON.stringify(transactionEvent.payload, null, 2);
     }
 
