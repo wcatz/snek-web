@@ -189,9 +189,11 @@
   <script>
     let prevSlotNumber;
     let inExtraDataView = false;
-    let messageArray = [];
+    let eventsMap = new Map();
     let messageIdCounter = 0;
     var socket = new WebSocket("ws://localhost:8080/ws");
+
+    const messagesContainer = document.getElementById("messages-container");
 
     // Function to create a new message div with a unique id
     function createMessageDiv() {
@@ -206,6 +208,7 @@
       const messagesContainer = document.getElementById("messages-container");
       messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
     }
+
     // Function to clear the screen
     function clearScreen() {
       const messagesContainer = document.getElementById("messages-container");
@@ -227,20 +230,29 @@
       console.log("WebSocket connection closed:", event);
     }
 
-    // Function to handle WebSocket message event
-    function handleWebSocketMessage(event) {
-      const eventData = JSON.parse(event.data);
-      const newDiv = createMessageDiv();
-      // Store all events in the array
-      messageArray.push({ eventData, newDiv });
-      // Display events based on the view state
-      if (!inExtraDataView) {
-        displayEvent(eventData, newDiv);
-      } else {
-        displayExtraDataView();
-      }
-      insertMessageDiv(newDiv);
+// Function to handle WebSocket message event
+function handleWebSocketMessage(event) {
+  const eventData = JSON.parse(event.data);
+  const newDiv = createMessageDiv();
+  
+  // Store events in the map using transaction hash as key
+  eventsMap.set(eventData.context.transactionHash, { eventData, newDiv });
+
+  // Display events based on the view state
+  if (!inExtraDataView) {
+    displayEvent(eventData, newDiv);
+  } else {
+    // Check if the extraDataView is active and the event is for the current transaction
+    if (
+      eventData.type === "chainsync.transaction" &&
+      eventData.context.transactionHash === Array.from(eventsMap.values()).pop().eventData.context.transactionHash
+    ) {
+      displayExtraDataView();
     }
+  }
+
+  insertMessageDiv(newDiv);
+}
 
     // Function to display events
     function displayEvent(eventData, newDiv) {
@@ -259,10 +271,10 @@
       }
     }
 
-    // Function to redisplay all events
+    // Function to display all events
     function displayAllEvents() {
-      // Display all events from the array
-      messageArray.forEach(({ eventData, newDiv }) => {
+      // Display all events from the map
+      eventsMap.forEach(({ eventData, newDiv }) => {
         switch (eventData.type) {
           case "chainsync.block":
             displayBlockEvent(eventData, newDiv);
@@ -292,11 +304,12 @@
       }
     }
 
-    // Function to display extra data view
-    function displayExtraDataView() {
-      const { eventData, newDiv } = messageArray[messageArray.length - 1];
-      handleExtraDataEvents(eventData, newDiv);
-    }
+ // Function to display extra data view
+function displayExtraDataView() {
+  clearScreen(); // Clear the screen before displaying extra data view
+  const { eventData, newDiv } = Array.from(eventsMap.values()).pop();
+  handleExtraDataEvents(eventData, newDiv);
+}
 
     // Function to display extra data
     function displayExtraData(transactionEvent, newDiv) {
@@ -316,7 +329,7 @@
         "relative"
       );
 
-      // logic to extract and display the extra data goes here
+      // Logic to extract and display the extra data goes here
       const extraData = extractExtraData(transactionEvent);
       extraDataDiv.innerHTML = `
     <pre class="mx-auto whitespace-pre-line text-white">

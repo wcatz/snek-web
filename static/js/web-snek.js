@@ -1,22 +1,43 @@
 function copyToClipboard(element, property) {
   const propertySpan = element;
-  const tempInput = document.createElement("textarea");
-  tempInput.value = propertySpan.innerText;
-  document.body.appendChild(tempInput);
-  tempInput.select();
-  document.execCommand("copy");
-  document.body.removeChild(tempInput);
+  const textToCopy = propertySpan.innerText;
 
-  // Highlight copy
-  propertySpan.classList.add(
-    "text-white",
-    "transition-color",
-    "duration-300"
-  );
-  setTimeout(() => {
-    propertySpan.classList.remove("text-white");
-  }, 500);
+  // Use the Clipboard API if available
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      // Highlight copy
+      propertySpan.classList.add(
+        "text-white",
+        "transition-color",
+        "duration-300"
+      );
+      setTimeout(() => {
+        propertySpan.classList.remove("text-white");
+      }, 500);
+    }).catch(err => {
+      console.error('Unable to copy to clipboard', err);
+    });
+  } else {
+    // Fallback for browsers that do not support the Clipboard API
+    const tempInput = document.createElement("textarea");
+    tempInput.value = textToCopy;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand("copy");
+    document.body.removeChild(tempInput);
+
+    // Highlight copy
+    propertySpan.classList.add(
+      "text-white",
+      "transition-color",
+      "duration-300"
+    );
+    setTimeout(() => {
+      propertySpan.classList.remove("text-white");
+    }, 500);
+  }
 }
+
 
 // Fetch the current node address on page load
 document.addEventListener("DOMContentLoaded", function () {
@@ -181,20 +202,24 @@ function formatTimeDifference(slotsDiff) {
   }
 }
 
-// Function to handle back button click
+// Function to handle left arrow click (Go Back)
 function goBack() {
   if (inExtraDataView) {
     // Reset the view state to "main page" view only if inExtraDataView is true
     inExtraDataView = false;
+
     // Clear the screen
     clearScreen();
-    // Redisplay all events
-    displayAllEvents();
-    // Handle extra data events if any
-    const { eventData, newDiv } = messageArray[messageArray.length - 1];
-    handleExtraDataEvents(eventData, newDiv);
+
+    // Repaint the
+    Array.from(eventsMap.values()).forEach(({ eventData, newDiv }) => {
+      displayEvent(eventData, newDiv);
+      insertMessageDiv(newDiv);
+    });
   }
+  removeGoBackButton(); // Remove the "Go Back" button
 }
+
 
 // Function to remove the "Go Back" button
 function removeGoBackButton() {
@@ -230,31 +255,20 @@ function displayBlockEvent(blockEvent, newDiv) {
   // Calculate time difference
   const timeDifference = calculateTimeDifference(blockEvent);
   newDiv.innerHTML = `
-  <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
-    <pre class="whitespace-pre-line text-green-600 mx-auto">
-      <span class="text-blue-400">Type</span><span class="text-white">:</span> ${blockEvent.type
-    }
-      <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${blockEvent.timestamp
-    }
-      <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${blockEvent.context.blockNumber
-    }
-      <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${blockEvent.context.slotNumber
-    }
-      <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(
-      2
-    )} KB, ${percentageFull.toFixed(2)}% full
-      <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-      id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${blockEvent.payload.issuerVkey
-    }</span>
-      <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-      id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${blockEvent.payload.blockHash
-    }</span>
-      <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${blockEvent.payload.transactionCount
-    }
-    </pre>
-  </div>
-  <div class="text-center py-1 text-white">${timeDifference}</div>
-`;
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg">
+      <pre class="whitespace-pre-line text-green-600 mx-auto">
+        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${blockEvent.type}
+        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${blockEvent.timestamp}
+        <span class="text-blue-400">Block Number</span><span class="text-white">:</span> ${blockEvent.context.blockNumber}
+        <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${blockEvent.context.slotNumber}
+        <span class="text-blue-400">Block Size</span><span class="text-white">:</span> ${blockBodySizeKB.toFixed(2)} KB, ${percentageFull.toFixed(2)}% full
+        <span class="text-blue-400">Pool</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" id="issuerVkey" onclick="copyToClipboard(this, 'issuerVkey')">${blockEvent.payload.issuerVkey}</span>
+        <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" id="blockHash" onclick="copyToClipboard(this, 'blockHash')">${blockEvent.payload.blockHash}</span>
+        <span class="text-blue-400">Transaction Count</span><span class="text-white">:</span> ${blockEvent.payload.transactionCount}
+      </pre>
+    </div>
+    <div class="text-center py-1 text-white">${timeDifference}</div>
+  `;
   // Update the previous slot number for the next message
   prevSlotNumber = blockEvent.context.slotNumber;
 }
@@ -265,16 +279,15 @@ function displayRollbackEvent(rollbackEvent, newDiv) {
   // Calculate time difference
   const timeDifference = calculateTimeDifference(rollbackEvent);
   newDiv.innerHTML = `
-<div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black m-4 p-6 rounded-lg shadow-lg">
-<pre class="mx-auto whitespace-pre-line text-red-600">
-<span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
-<span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
-<span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
-<span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
-</pre>
-</div>
-`;
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black m-4 p-6 rounded-lg shadow-lg">
+      <pre class="mx-auto whitespace-pre-line text-red-600">
+        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${rollbackEvent.type}
+        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${rollbackEvent.timestamp}                  
+        <span class="text-blue-400">Block Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" id="blockHash" onclick="copyToClipboard('${newDiv.id}', 'blockHash')">${rollbackEvent.payload.blockHash}</span>
+        <span class="text-blue-400">Slot Number</span><span class="text-white">:</span> ${rollbackEvent.payload.slotNumber}
+      </pre>
+    </div>
+  `;
   // Only display the time difference if it is not an empty string
   if (timeDifference !== "") {
     const timeDifferenceDiv = document.createElement("div");
