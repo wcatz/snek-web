@@ -202,47 +202,6 @@ function formatTimeDifference(slotsDiff) {
   }
 }
 
-// Function to handle left arrow click (Go Back)
-function goBack() {
-  if (inExtraDataView) {
-    // Reset the view state to "main page" view only if inExtraDataView is true
-    inExtraDataView = false;
-
-    // Clear the screen
-    clearScreen();
-
-    // Repaint the
-    Array.from(eventsMap.values()).forEach(({ eventData, newDiv }) => {
-      displayEvent(eventData, newDiv);
-      insertMessageDiv(newDiv);
-    });
-  }
-  removeGoBackButton(); // Remove the "Go Back" button
-}
-
-
-// Function to remove the "Go Back" button
-function removeGoBackButton() {
-  const goBackButton = document.getElementById("goBackButton");
-  if (goBackButton) {
-    goBackButton.parentNode.removeChild(goBackButton);
-  }
-}
-
-// Function to handle right arrow click
-function handleRightArrowClick(transactionEvent) {
-  // Store the current scroll position
-  const currentScrollPosition = window.scrollY;
-  // Set the view state to "extra data" view
-  inExtraDataView = true;
-  // Clear the screen
-  clearScreen();
-  // Display extra data
-  displayExtraData(transactionEvent);
-  // Scroll to the top of the page
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
 // Function to display BlockEvent
 function displayBlockEvent(blockEvent, newDiv) {
   // Convert block size to kilobytes
@@ -297,57 +256,3 @@ function displayRollbackEvent(rollbackEvent, newDiv) {
   }
 }
 
-// Function to display TransactionEvent
-function displayTransactionEvent(transactionEvent, newDiv) {
-  const transactionDiv = document.createElement("div");
-  transactionDiv.classList.add("my-2");
-
-  // Calculate time difference
-  const timeDifference = calculateTimeDifference(transactionEvent);
-  displayedTimeDifference = timeDifference; // Store the displayed time difference
-
-  // Dynamically create the link for each transaction
-  const txLink = document.createElement("a");
-  const transactionHash = transactionEvent.context.transactionHash;
-  const linkId = `tx-link-${transactionHash}`;
-  // console.log("Generated Link ID:", linkId); // Log the generated ID
-  txLink.href = `#${linkId}`;
-  txLink.id = linkId;
-
-  transactionDiv.innerHTML = `
-<div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
-  <div class="mt-2">
-    ${txLink.outerHTML}
-  </div>
-  <pre class="mx-auto whitespace-pre-line text-yellow-600">
-    <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
-    <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
-    <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
-    <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
-    <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-      id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
-      <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
-  </pre>
-  <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
-    ➡️ <!-- Right arrow symbol -->
-  </div>
-</div>
-`;
-
-  // Check if the block number has increased
-  if (timeDifference !== "") {
-    const timeDifferenceDiv = document.createElement("div");
-    timeDifferenceDiv.classList.add("text-center", "text-white");
-    timeDifferenceDiv.textContent = timeDifference;
-    transactionDiv.appendChild(timeDifferenceDiv);
-  }
-
-  // Append the new div to the provided container
-  newDiv.appendChild(transactionDiv);
-
-  // Add event listener for arrow button click
-  const arrowButton = newDiv.querySelector("#arrowButton");
-  arrowButton.addEventListener("click", () =>
-    handleRightArrowClick(transactionEvent)
-  );
-}
