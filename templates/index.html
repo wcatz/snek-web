@@ -230,10 +230,23 @@
       // If inExtraDataView is true, don't display the event
       if (inExtraDataView) return;
 
-      // Update the map only if the event is not already in the map
-      if (!eventsMap.has(eventData.context.transactionHash)) {
-        eventsMap.set(eventData.context.transactionHash, eventData);
-        displayEvent(eventData);
+      // Get or create the div for the event
+      const { newDiv } = eventsMap.get(eventData?.context?.transactionHash) || {
+        newDiv: createMessageDiv(),
+      };
+
+      // Check if eventData is defined before displaying the event
+      if (eventData) {
+        // Display the event
+        displayEvent(eventData, newDiv);
+
+        // Update the map only if the event is not already in the map
+        if (!eventsMap.has(eventData.context.transactionHash)) {
+          eventsMap.set(eventData.context.transactionHash, {
+            eventData,
+            newDiv,
+          });
+        }
       }
     }
 
@@ -246,8 +259,9 @@
       clearScreen();
 
       // Display all events from the map in the messages container
-      eventsMap.forEach((eventData) => {
-        displayEvent(eventData);
+      eventsMap.forEach(({ eventData, newDiv }) => {
+        displayEvent(eventData, newDiv);
+        messagesContainer.prepend(newDiv); // Prepend the new div to the container
       });
 
       removeGoBackButton(); // Remove the "Go Back" button
@@ -261,7 +275,6 @@
       }
     }
 
-    // Function to display events
     function displayEvent(eventData) {
       const newDiv = createMessageDiv();
       switch (eventData.type) {
@@ -280,8 +293,8 @@
         default:
           console.log("Unknown event type:", eventData.type);
       }
-      // Append the new div to the provided container
-      messagesContainer.appendChild(newDiv);
+      // Prepend the new div to the provided container
+      messagesContainer.prepend(newDiv);
     }
 
     // Function to display TransactionEvent
