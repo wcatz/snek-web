@@ -39,17 +39,76 @@ function copyToClipboard(element, property) {
 }
 
 
-// Fetch the current node address on page load
 document.addEventListener("DOMContentLoaded", function () {
+  // Fetch the current node address on page load
   fetch("/getNodeAddress")
     .then((response) => response.json())
     .then((data) => {
       if (data.nodeAddress) {
-        document.getElementById("nodeAddressInput").value =
-          data.nodeAddress;
+        document.getElementById("nodeAddressInput").value = data.nodeAddress;
       }
     })
     .catch((error) => console.error("Error fetching node address:", error));
+
+  const toggleButton = document.getElementById("toggleButton");
+  const closeButton = document.getElementById("closeButton");
+  const offcanvasMenu = document.querySelector(".offcanvas");
+  const toggleMenu = function () {
+    offcanvasMenu.classList.toggle("transform-none");
+  };
+
+  // Toggle menu when clicking the toggle button
+  toggleButton.addEventListener("click", toggleMenu);
+
+  // Close menu when clicking the close button
+  closeButton.addEventListener("click", toggleMenu);
+
+  // Close menu when clicking outside the menu
+  document.addEventListener("mousedown", function (event) {
+    if (
+      !offcanvasMenu.contains(event.target) &&
+      event.target !== toggleButton
+    ) {
+      offcanvasMenu.classList.remove("transform-none");
+    }
+  });
+
+  // Close menu when pressing the Escape key
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      offcanvasMenu.classList.remove("transform-none");
+    }
+  });
+
+  // Close menu when clicking on the page (outside the menu or toggle button)
+  document.addEventListener("focusin", function (event) {
+    if (
+      !offcanvasMenu.contains(event.target) &&
+      event.target !== toggleButton
+    ) {
+      offcanvasMenu.classList.remove("transform-none");
+    }
+  });
+
+  // When the user scrolls down 2 screen heights, show the button
+  window.onscroll = function () {
+    const scrollThreshold = window.innerHeight * 2;
+    const toTopButton = document.getElementById("toTop");
+
+    if (
+      document.body.scrollTop > scrollThreshold ||
+      document.documentElement.scrollTop > scrollThreshold
+    ) {
+      toTopButton.classList.remove("hidden");
+    } else {
+      toTopButton.classList.add("hidden");
+    }
+  };
+
+  // When the user clicks on the button, scroll to the top of the document
+  function goToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 });
 
 function updateNodeAddress() {
@@ -92,47 +151,7 @@ function updateEventType(selectedEventType) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  const toggleButton = document.getElementById("toggleButton");
-  const closeButton = document.getElementById("closeButton");
-  const offcanvasMenu = document.querySelector(".offcanvas");
-  const toggleMenu = function () {
-    offcanvasMenu.classList.toggle("transform-none");
-  };
 
-  // Toggle menu when clicking the toggle button
-  toggleButton.addEventListener("click", toggleMenu);
-
-  // Close menu when clicking the close button
-  closeButton.addEventListener("click", toggleMenu);
-
-  // Close menu when clicking outside the menu
-  document.addEventListener("mousedown", function (event) {
-    if (
-      !offcanvasMenu.contains(event.target) &&
-      event.target !== toggleButton
-    ) {
-      offcanvasMenu.classList.remove("transform-none");
-    }
-  });
-
-  // Close menu when pressing the Escape key
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-      offcanvasMenu.classList.remove("transform-none");
-    }
-  });
-
-  // Close menu when clicking on the page (outside the menu or toggle button)
-  document.addEventListener("focusin", function (event) {
-    if (
-      !offcanvasMenu.contains(event.target) &&
-      event.target !== toggleButton
-    ) {
-      offcanvasMenu.classList.remove("transform-none");
-    }
-  });
-});
 // When the user scrolls down 2 screen heights, show the button
 window.onscroll = function () {
   const scrollThreshold = window.innerHeight * 2;
