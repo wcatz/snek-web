@@ -199,14 +199,7 @@
     function createMessageDiv() {
       const newDiv = document.createElement("div");
       newDiv.classList.add("message-block");
-      newDiv.id = `message-${messageIdCounter++}`;
       return newDiv;
-    }
-
-    // Function to insert a message div into the messages container
-    function insertMessageDiv(newDiv) {
-      const messagesContainer = document.getElementById("messages-container");
-      messagesContainer.insertBefore(newDiv, messagesContainer.firstChild);
     }
 
     // Function to clear the screen
@@ -233,31 +226,44 @@
     // Function to handle WebSocket message event
     function handleSocketMessage(event) {
       const eventData = JSON.parse(event.data);
-      const newDiv = createMessageDiv();
 
-      // Store events in the map using transaction hash as key
-      eventsMap.set(eventData.context.transactionHash, { eventData, newDiv });
+      // If inExtraDataView is true, don't display the event
+      if (inExtraDataView) return;
 
-      // Display events based on the view state
-      if (!inExtraDataView) {
-        displayEvent(eventData, newDiv);
-      } else {
-        // Check if the extraDataView is active
-        if (
-          eventData.type === "chainsync.transaction" &&
-          eventData.context.transactionHash ===
-            Array.from(eventsMap.values()).pop().eventData.context
-              .transactionHash
-        ) {
-          displayExtraDataView();
-        }
+      // Update the map only if the event is not already in the map
+      if (!eventsMap.has(eventData.context.transactionHash)) {
+        eventsMap.set(eventData.context.transactionHash, eventData);
+        displayEvent(eventData);
       }
+    }
 
-      insertMessageDiv(newDiv);
+    // Function to handle left arrow click (Go Back)
+    function goBack() {
+      // Reset the view state to "main page" view only if inExtraDataView is true
+      inExtraDataView = false;
+
+      // Clear the screen
+      clearScreen();
+
+      // Display all events from the map in the messages container
+      eventsMap.forEach((eventData) => {
+        displayEvent(eventData);
+      });
+
+      removeGoBackButton(); // Remove the "Go Back" button
+    }
+
+    // Function to remove the "Go Back" button
+    function removeGoBackButton() {
+      const goBackButton = document.getElementById("goBackButton");
+      if (goBackButton) {
+        goBackButton.parentNode.removeChild(goBackButton);
+      }
     }
 
     // Function to display events
-    function displayEvent(eventData, newDiv) {
+    function displayEvent(eventData) {
+      const newDiv = createMessageDiv();
       switch (eventData.type) {
         case "chainsync.block":
           displayBlockEvent(eventData, newDiv);
@@ -274,7 +280,10 @@
         default:
           console.log("Unknown event type:", eventData.type);
       }
+      // Append the new div to the provided container
+      messagesContainer.appendChild(newDiv);
     }
+
     // Function to display TransactionEvent
     function displayTransactionEvent(transactionEvent, newDiv) {
       const transactionDiv = document.createElement("div");
@@ -288,29 +297,28 @@
       const txLink = document.createElement("a");
       const transactionHash = transactionEvent.context.transactionHash;
       const linkId = `tx-link-${transactionHash}`;
-      // console.log("Generated Link ID:", linkId); // Log the generated ID
       txLink.href = `#${linkId}`;
       txLink.id = linkId;
 
       transactionDiv.innerHTML = `
-<div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
-  <div class="mt-2">
-    ${txLink.outerHTML}
-  </div>
-  <pre class="mx-auto whitespace-pre-line text-yellow-600">
-    <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
-    <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
-    <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
-    <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
-    <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-      id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
-      <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
-  </pre>
-  <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
-    ➡️ <!-- Right arrow symbol -->
-  </div>
-</div>
-`;
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
+      <div class="mt-2">
+        ${txLink.outerHTML}
+      </div>
+      <pre class="mx-auto whitespace-pre-line text-yellow-600">
+        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
+        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
+        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
+        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
+        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
+          id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
+        <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
+      </pre>
+      <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
+        ➡️ <!-- Right arrow symbol -->
+      </div>
+    </div>
+  `;
 
       // Check if the block number has increased
       if (timeDifference !== "") {
@@ -320,60 +328,14 @@
         transactionDiv.appendChild(timeDifferenceDiv);
       }
 
-      // Append the new div to the provided container
-      newDiv.appendChild(transactionDiv);
-
       // Add event listener for arrow button click
-      const arrowButton = newDiv.querySelector("#arrowButton");
+      const arrowButton = transactionDiv.querySelector("#arrowButton");
       arrowButton.addEventListener("click", () =>
         handleRightArrowClick(transactionEvent)
       );
-    }
 
-    // Function to handle extra data events
-    function handleExtraDataEvents(eventData, newDiv) {
-      // Check the event type and handle it accordingly
-      switch (eventData.type) {
-        case "chainsync.transaction":
-          displayExtraData(eventData, newDiv);
-          break;
-        default:
-          console.log("Unknown extra data event type:", eventData.type);
-      }
-    }
-
-    function displayExtraDataView() {
-      clearScreen();
-      if (linkedTransactionHash && eventsMap.has(linkedTransactionHash)) {
-        const { eventData, newDiv } = eventsMap.get(linkedTransactionHash);
-        handleExtraDataEvents(eventData, newDiv);
-      }
-    }
-
-    // Function to handle left arrow click (Go Back)
-    function goBack() {
-      if (inExtraDataView) {
-        // Reset the view state to "main page" view only if inExtraDataView is true
-        inExtraDataView = false;
-
-        // Clear the screen
-        clearScreen();
-
-        // Repaint the events
-        Array.from(eventsMap.values()).forEach(({ eventData, newDiv }) => {
-          displayEvent(eventData, newDiv);
-          insertMessageDiv(newDiv);
-        });
-      }
-      removeGoBackButton(); // Remove the "Go Back" button
-    }
-
-    // Function to remove the "Go Back" button
-    function removeGoBackButton() {
-      const goBackButton = document.getElementById("goBackButton");
-      if (goBackButton) {
-        goBackButton.parentNode.removeChild(goBackButton);
-      }
+      // Append the new div to the provided container
+      newDiv.appendChild(transactionDiv);
     }
 
     // Function to handle right arrow click
@@ -391,7 +353,7 @@
     }
 
     // Function to display extra data
-    function displayExtraData(transactionEvent, newDiv) {
+    function displayExtraData(transactionEvent) {
       // Create a new div for the extra data and left arrow
       const extraDataDiv = document.createElement("div");
       extraDataDiv.classList.add(
@@ -415,6 +377,7 @@
       ${extraData}
     </pre>
   `;
+
       // Append the left arrow to the extra data div
       const leftArrowDiv = document.createElement("div");
       leftArrowDiv.classList.add(
