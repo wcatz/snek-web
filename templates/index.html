@@ -414,10 +414,31 @@
       messagesContainer.appendChild(extraDataDiv);
     }
 
-    // Function to extract and format the extra data
-    function extractExtraData(transactionEvent) {
-      return JSON.stringify(transactionEvent.payload, null, 2);
-    }
+// Function to extract and format the extra data
+function extractExtraData(transactionEvent) {
+  const data = transactionEvent.payload;
+
+  return `
+    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
+      <pre class="mx-auto whitespace-pre-line text-white">
+        <span class="text-blue-400">Block Hash:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'blockHash')" style="word-wrap: break-word;">${data.blockHash}</span>
+        <span class="text-blue-400">Transaction CBOR:</span> ${data.transactionCbor ? `<span class="text-white" style="word-wrap: break-word;">${data.transactionCbor}</span>` : '<span class="text-gray-400">Not available</span>'}        
+        <span class="text-blue-400">Inputs:</span>
+        ${data.inputs.map((input, index) => `<div key="${index}" class="ml-2"><span class="text-white" style="word-wrap: break-word;">${input}</span></div>`).join('')}
+        <span class="text-blue-400">Outputs:</span>
+        ${data.outputs.map((output, index) => `
+          <div key="${index}" class="ml-2">
+            <span class="text-blue-400">Address:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'address')" style="word-wrap: break-word;">${output.address}</span>
+            <span class="text-blue-400">Amount:</span> <span class="text-white">${output.amount}</span>
+          </div>`).join('')}
+        <span class="text-blue-400">Metadata:</span> ${data.metadata ? `<span class="text-white" style="word-wrap: break-word;">${data.metadata}</span>` : '<span class="text-gray-400">Not available</span>'}
+        <span class="text-blue-400">Fee:</span> <span class="text-white">${data.fee}</span>
+        <span class="text-blue-400">TTL:</span> <span class="text-white">${data.ttl}</span>
+      </pre>
+    </div>
+  `;
+}
+
 
     // Set up WebSocket event listeners
     socket.addEventListener("open", handleSocketOpen);
