@@ -228,6 +228,10 @@
 
     // Function to handle WebSocket message event
     function handleSocketMessage(event) {
+      if (event.data === "refresh") {
+          window.location.reload();
+          return;
+      }
       const eventData = JSON.parse(event.data);
       // Increment the event counter
       eventCounter++;
