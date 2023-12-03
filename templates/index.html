@@ -14,6 +14,9 @@
   <body
     class="min-h-screen bg-gradient-radial from-blue-700 via-blue-900 to-black"
   >
+  <!-- Add this element where you want the counter to appear -->
+<div id="eventCounter" class="absolute top-0 left-0 text-white ml-4 mt-4"></div>
+
     <!-- Touch the Snek -->
     <button
       class="relative top-4 left-1/2 transform -translate-x-1/2 bg-transparent text-white px-4 py-2 rounded"
@@ -187,133 +190,142 @@
     </div>
   </body>
   <script>
-    let prevSlotNumber;
-    let inExtraDataView = false;
-    let eventsMap = new Map();
-    let messageIdCounter = 0;
-    var socket = new WebSocket("ws://localhost:8080/ws");
+   let prevSlotNumber;
+let inExtraDataView = false;
+let eventsMap = new Map();
+let eventCounter = 0;
 
-    const messagesContainer = document.getElementById("messages-container");
+var socket = new WebSocket("ws://localhost:8080/ws");
 
-    // Function to create a new message div with a unique id
-    function createMessageDiv() {
-      const newDiv = document.createElement("div");
-      newDiv.classList.add("message-block");
-      return newDiv;
-    }
+const messagesContainer = document.getElementById("messages-container");
 
-    // Function to clear the screen
-    function clearScreen() {
-      const messagesContainer = document.getElementById("messages-container");
-      messagesContainer.innerHTML = "";
-    }
+// Function to create a new message div
+function createMessageDiv() {
+  const newDiv = document.createElement("div");
+  newDiv.classList.add("message-block");
+  return newDiv;
+}
 
-    // Function to handle WebSocket open event
-    function handleSocketOpen(event) {
-      console.log("WebSocket connection opened:", event);
-    }
+// Function to clear the screen
+function clearScreen() {
+  messagesContainer.innerHTML = "";
+}
 
-    // Function to handle WebSocket error event
-    function handleSocketError(event) {
-      console.error("WebSocket error:", event);
-    }
+// Function to handle WebSocket open event
+function handleSocketOpen(event) {
+  console.log("WebSocket connection opened:", event);
+}
 
-    // Function to handle WebSocket close event
-    function handleSocketClose(event) {
-      console.log("WebSocket connection closed:", event);
-    }
+// Function to handle WebSocket error event
+function handleSocketError(event) {
+  console.error("WebSocket error:", event);
+}
 
-    // Function to handle WebSocket message event
-    function handleSocketMessage(event) {
-      const eventData = JSON.parse(event.data);
+// Function to handle WebSocket close event
+function handleSocketClose(event) {
+  console.log("WebSocket connection closed:", event);
+}
 
-      // If inExtraDataView is true, don't display the event
-      if (inExtraDataView) return;
+function handleSocketMessage(event) {
+  const eventData = JSON.parse(event.data);
 
-      // Get or create the div for the event
-      const { newDiv } = eventsMap.get(eventData?.context?.transactionHash) || {
-        newDiv: createMessageDiv(),
-      };
+  // Increment the event counter
+  eventCounter++;
 
-      // Check if eventData is defined before displaying the event
-      if (eventData) {
-        // Display the event
-        displayEvent(eventData, newDiv);
+  // If inExtraDataView is true, don't display the event
+  if (inExtraDataView) return;
 
-        // Update the map only if the event is not already in the map
-        if (!eventsMap.has(eventData.context.transactionHash)) {
-          eventsMap.set(eventData.context.transactionHash, {
-            eventData,
-            newDiv,
-          });
-        }
-      }
-    }
+  // Get or create the div for the event
+  const { newDiv } = eventsMap.get(eventData?.context?.transactionHash) || {
+    newDiv: createMessageDiv(),
+  };
 
-    // Function to handle left arrow click (Go Back)
-    function goBack() {
-      // Reset the view state to "main page" view only if inExtraDataView is true
-      inExtraDataView = false;
+  // Check if eventData is defined before displaying the event
+  if (eventData) {
+    // Display the event
+    displayEvent(eventData, newDiv);
 
-      // Clear the screen
-      clearScreen();
-
-      // Display all events from the map in the messages container
-      eventsMap.forEach(({ eventData, newDiv }) => {
-        displayEvent(eventData, newDiv);
-        messagesContainer.prepend(newDiv); // Prepend the new div to the container
+    // Update the map only if the event is not already in the map
+    if (!eventsMap.has(eventData.context.transactionHash)) {
+      eventsMap.set(eventData.context.transactionHash, {
+        eventData,
+        newDiv,
       });
-
-      removeGoBackButton(); // Remove the "Go Back" button
     }
+  }
 
-    // Function to remove the "Go Back" button
-    function removeGoBackButton() {
-      const goBackButton = document.getElementById("goBackButton");
-      if (goBackButton) {
-        goBackButton.parentNode.removeChild(goBackButton);
+  // Update the event counter display
+  updateEventCounter();
+}
+
+function updateEventCounter() {
+  const counterElement = document.getElementById("eventCounter");
+  if (counterElement) {
+    counterElement.textContent = `Events: ${eventCounter}`;
+  }
+}
+
+
+// Function to handle left arrow click (Go Back)
+function goBack() {
+  // Reset the view state to "main page" view only if inExtraDataView is true
+  inExtraDataView = false;
+  // Clear the screen
+  clearScreen();
+  // Display all events from the map in the messages container
+  eventsMap.forEach(({ eventData, newDiv }) => {
+    displayEvent(eventData, newDiv);
+    messagesContainer.prepend(newDiv); // Prepend the new div to the container
+  });
+  // Remove the left arrow
+  const goBackButton = document.getElementById("goBackButton");
+  if (goBackButton) {
+    goBackButton.parentNode.removeChild(goBackButton);
+  }
+}
+
+// Function to display Event
+function displayEvent(eventData, newDiv) {
+  const eventType = eventData.type;
+
+  switch (eventType) {
+    case "chainsync.block":
+      displayBlockEvent(eventData, newDiv);
+      break;
+    case "chainsync.rollback":
+      displayRollbackEvent(eventData, newDiv);
+      break;
+    case "chainsync.transaction":
+      // Check if inExtraDataView is false before displaying transaction events
+      if (!inExtraDataView) {
+        displayTransactionEvent(eventData, newDiv);
       }
-    }
+      break;
+    default:
+      console.log("Unknown event type:", eventType);
+  }
 
-    function displayEvent(eventData) {
-      const newDiv = createMessageDiv();
-      switch (eventData.type) {
-        case "chainsync.block":
-          displayBlockEvent(eventData, newDiv);
-          break;
-        case "chainsync.rollback":
-          displayRollbackEvent(eventData, newDiv);
-          break;
-        case "chainsync.transaction":
-          // Check if inExtraDataView is false before displaying transaction events
-          if (!inExtraDataView) {
-            displayTransactionEvent(eventData, newDiv);
-          }
-          break;
-        default:
-          console.log("Unknown event type:", eventData.type);
-      }
-      // Prepend the new div to the provided container
-      messagesContainer.prepend(newDiv);
-    }
+  // Prepend the new div to the provided container
+  messagesContainer.prepend(newDiv);
+}
 
-    // Function to display TransactionEvent
-    function displayTransactionEvent(transactionEvent, newDiv) {
-      const transactionDiv = document.createElement("div");
-      transactionDiv.classList.add("my-2");
+// Function to display TransactionEvent
+function displayTransactionEvent(transactionEvent, newDiv) {
+  const transactionDiv = document.createElement("div");
+  transactionDiv.classList.add("my-2");
 
-      // Calculate time difference
-      const timeDifference = calculateTimeDifference(transactionEvent);
-      displayedTimeDifference = timeDifference; // Store the displayed time difference
+  // Calculate time difference
+  const timeDifference = calculateTimeDifference(transactionEvent);
+  displayedTimeDifference = timeDifference; // Store the displayed time difference
 
-      // Dynamically create the link for each transaction
-      const txLink = document.createElement("a");
-      const transactionHash = transactionEvent.context.transactionHash;
-      const linkId = `tx-link-${transactionHash}`;
-      txLink.href = `#${linkId}`;
-      txLink.id = linkId;
+  // Dynamically create the link for each transaction
+  const txLink = document.createElement("a");
+  const transactionHash = transactionEvent.context.transactionHash;
+  const linkId = `tx-link-${transactionHash}`;
+  txLink.href = `#${linkId}`;
+  txLink.id = linkId;
 
-      transactionDiv.innerHTML = `
+  transactionDiv.innerHTML = `
     <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
       <div class="mt-2">
         ${txLink.outerHTML}
@@ -333,86 +345,85 @@
     </div>
   `;
 
-      // Check if the block number has increased
-      if (timeDifference !== "") {
-        const timeDifferenceDiv = document.createElement("div");
-        timeDifferenceDiv.classList.add("text-center", "text-white");
-        timeDifferenceDiv.textContent = timeDifference;
-        transactionDiv.appendChild(timeDifferenceDiv);
-      }
+  // Check if the block number has increased
+  if (timeDifference !== "") {
+    const timeDifferenceDiv = document.createElement("div");
+    timeDifferenceDiv.classList.add("text-center", "text-white");
+    timeDifferenceDiv.textContent = timeDifference;
+    transactionDiv.appendChild(timeDifferenceDiv);
+  }
 
-      // Add event listener for arrow button click
-      const arrowButton = transactionDiv.querySelector("#arrowButton");
-      arrowButton.addEventListener("click", () =>
-        handleRightArrowClick(transactionEvent)
-      );
+  // Add event listener for arrow button click
+  const arrowButton = transactionDiv.querySelector("#arrowButton");
+  arrowButton.addEventListener("click", () =>
+    handleRightArrowClick(transactionEvent)
+  );
 
-      // Append the new div to the provided container
-      newDiv.appendChild(transactionDiv);
-    }
+  // Append the new div to the provided container
+  newDiv.appendChild(transactionDiv);
+}
 
-    // Function to handle right arrow click
-    function handleRightArrowClick(transactionEvent) {
-      // Store the current scroll position
-      const currentScrollPosition = window.scrollY;
-      // Set the view state to "extra data" view
-      inExtraDataView = true;
-      // Clear the screen
-      clearScreen();
-      // Display extra data
-      displayExtraData(transactionEvent);
-      // Scroll to the top of the page
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+// Function to handle right arrow click
+function handleRightArrowClick(transactionEvent) {
+  // Store the current scroll position
+  const currentScrollPosition = window.scrollY;
+  // Set the view state to "extra data" view
+  inExtraDataView = true;
+  // Clear the screen
+  clearScreen();
+  // Display extra data
+  displayExtraData(transactionEvent);
+  // Scroll to the top of the page
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
-    // Function to display extra data
-    function displayExtraData(transactionEvent) {
-      // Create a new div for the extra data and left arrow
-      const extraDataDiv = document.createElement("div");
-      extraDataDiv.classList.add(
-        "zoom-in",
-        "mx-auto",
-        "max-w-5xl",
-        "px-4",
-        "sm:px-6",
-        "lg:px-8",
-        "bg-black",
-        "p-6",
-        "rounded-lg",
-        "shadow-lg",
-        "relative"
-      );
+// Function to display extra data
+function displayExtraData(transactionEvent) {
+  // Create a new div for the extra data and left arrow
+  const extraDataDiv = document.createElement("div");
+  extraDataDiv.classList.add(
+    "zoom-in",
+    "mx-auto",
+    "max-w-5xl",
+    "px-4",
+    "sm:px-6",
+    "lg:px-8",
+    "bg-black",
+    "p-6",
+    "rounded-lg",
+    "shadow-lg",
+    "relative"
+  );
 
-      // Logic to extract and display the extra data goes here
-      const extraData = extractExtraData(transactionEvent);
-      extraDataDiv.innerHTML = `
+  // Logic to extract and display the extra data goes here
+  const extraData = extractExtraData(transactionEvent);
+  extraDataDiv.innerHTML = `
     <pre class="mx-auto whitespace-pre-line text-white">
       ${extraData}
     </pre>
   `;
 
-      // Append the left arrow to the extra data div
-      const leftArrowDiv = document.createElement("div");
-      leftArrowDiv.classList.add(
-        "absolute",
-        "top-0", // Adjusted to top-0 for top corner
-        "left-0", // Adjusted to left-0 for left corner
-        "cursor-pointer",
-        "text-white",
-        "text-2xl"
-      );
-      leftArrowDiv.innerHTML = "⬅️"; // Left arrow symbol
-      // Add an event listener to handle left arrow click
-      leftArrowDiv.addEventListener("click", () => {
-        // Go back to the main view
-        goBack();
-      });
-      // Append the left arrow to the extra data div
-      extraDataDiv.appendChild(leftArrowDiv);
-      // Append the extra data div to the messages container
-      const messagesContainer = document.getElementById("messages-container");
-      messagesContainer.appendChild(extraDataDiv);
-    }
+  // Append the left arrow to the extra data div
+  const leftArrowDiv = document.createElement("div");
+  leftArrowDiv.classList.add(
+    "absolute",
+    "top-0", // Adjusted to top-0 for top corner
+    "left-0", // Adjusted to left-0 for left corner
+    "cursor-pointer",
+    "text-white",
+    "text-2xl"
+  );
+  leftArrowDiv.innerHTML = "⬅️"; // Left arrow symbol
+  // Add an event listener to handle left arrow click
+  leftArrowDiv.addEventListener("click", () => {
+    // Go back to the main view
+    goBack();
+  });
+  // Append the left arrow to the extra data div
+  extraDataDiv.appendChild(leftArrowDiv);
+  // Append the extra data div to the messages container
+  messagesContainer.appendChild(extraDataDiv);
+}
 
 // Function to extract and format the extra data
 function extractExtraData(transactionEvent) {
@@ -421,29 +432,52 @@ function extractExtraData(transactionEvent) {
   return `
     <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
       <pre class="mx-auto whitespace-pre-line text-white">
-        <span class="text-blue-400">Block Hash:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'blockHash')" style="word-wrap: break-word;">${data.blockHash}</span>
-        <span class="text-blue-400">Transaction CBOR:</span> ${data.transactionCbor ? `<span class="text-white" style="word-wrap: break-word;">${data.transactionCbor}</span>` : '<span class="text-gray-400">Not available</span>'}        
+        <span class="text-blue-400">Block Hash:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'blockHash')" style="word-wrap: break-word;">${
+          data.blockHash
+        }</span>
+        <span class="text-blue-400">Transaction CBOR:</span> ${
+          data.transactionCbor
+            ? `<span class="text-white" style="word-wrap: break-word;">${data.transactionCbor}</span>`
+            : '<span class="text-gray-400">Not available</span>'
+        }        
         <span class="text-blue-400">Inputs:</span>
-        ${data.inputs.map((input, index) => `<div key="${index}" class="ml-2"><span class="text-white" style="word-wrap: break-word;">${input}</span></div>`).join('')}
+        ${data.inputs
+          .map(
+            (input, index) =>
+              `<div key="${index}" class="ml-2"><span class="text-white" style="word-wrap: break-word;">${input}</span></div>`
+          )
+          .join("")}
         <span class="text-blue-400">Outputs:</span>
-        ${data.outputs.map((output, index) => `
+        ${data.outputs
+          .map(
+            (output, index) => `
           <div key="${index}" class="ml-2">
             <span class="text-blue-400">Address:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'address')" style="word-wrap: break-word;">${output.address}</span>
             <span class="text-blue-400">Amount:</span> <span class="text-white">${output.amount}</span>
-          </div>`).join('')}
-        <span class="text-blue-400">Metadata:</span> ${data.metadata ? `<span class="text-white" style="word-wrap: break-word;">${data.metadata}</span>` : '<span class="text-gray-400">Not available</span>'}
-        <span class="text-blue-400">Fee:</span> <span class="text-white">${data.fee}</span>
-        <span class="text-blue-400">TTL:</span> <span class="text-white">${data.ttl}</span>
+          </div>`
+          )
+          .join("")}
+        <span class="text-blue-400">Metadata:</span> ${
+          data.metadata
+            ? `<span class="text-white" style="word-wrap: break-word;">${data.metadata}</span>`
+            : '<span class="text-gray-400">Not available</span>'
+        }
+        <span class="text-blue-400">Fee:</span> <span class="text-white">${
+          data.fee
+        }</span>
+        <span class="text-blue-400">TTL:</span> <span class="text-white">${
+          data.ttl
+        }</span>
       </pre>
     </div>
   `;
 }
 
+// Set up WebSocket event listeners
+socket.addEventListener("open", handleSocketOpen);
+socket.addEventListener("error", handleSocketError);
+socket.addEventListener("close", handleSocketClose);
+socket.addEventListener("message", handleSocketMessage);
 
-    // Set up WebSocket event listeners
-    socket.addEventListener("open", handleSocketOpen);
-    socket.addEventListener("error", handleSocketError);
-    socket.addEventListener("close", handleSocketClose);
-    socket.addEventListener("message", handleSocketMessage);
   </script>
 </html>
