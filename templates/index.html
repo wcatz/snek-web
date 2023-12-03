@@ -14,7 +14,10 @@
   <body
     class="min-h-screen bg-gradient-radial from-blue-700 via-blue-900 to-black"
   >
-  <div id="eventCounter" class="absolute top-0 left-0 text-white ml-4 mt-4"></div>
+    <div
+      id="eventCounter"
+      class="absolute top-0 left-0 text-white ml-4 mt-4"
+    ></div>
 
     <!-- Touch the Snek -->
     <button
@@ -229,8 +232,8 @@
     // Function to handle WebSocket message event
     function handleSocketMessage(event) {
       if (event.data === "refresh") {
-          window.location.reload();
-          return;
+        window.location.reload();
+        return;
       }
       const eventData = JSON.parse(event.data);
       // Increment the event counter
@@ -261,12 +264,11 @@
     }
 
     function updateEventCounter() {
-  const counterElement = document.getElementById("eventCounter");
-  if (counterElement) {
-    counterElement.textContent = `Events: ${eventCounter}`;
-  }
-}
-
+      const counterElement = document.getElementById("eventCounter");
+      if (counterElement) {
+        counterElement.textContent = `Events: ${eventCounter}`;
+      }
+    }
 
     // Function to handle left arrow click (Go Back)
     function goBack() {
@@ -324,24 +326,24 @@
       txLink.id = linkId;
 
       transactionDiv.innerHTML = `
-    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
-      <div class="mt-2">
-        ${txLink.outerHTML}
-      </div>
-      <pre class="mx-auto whitespace-pre-line text-yellow-600">
-        <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
-        <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
-        <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
-        <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
-        <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap" 
-          id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
-        <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
-      </pre>
-      <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
-        ➡️ <!-- Right arrow symbol -->
-      </div>
-    </div>
-  `;
+        <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
+          <div class="mt-2">
+            ${txLink.outerHTML}
+          </div>
+          <pre class="mx-auto whitespace-pre-line text-yellow-600">
+            <span class="text-blue-400">Type</span><span class="text-white">:</span> ${transactionEvent.type}
+            <span class="text-blue-400">Timestamp</span><span class="text-white">:</span> ${transactionEvent.timestamp}
+            <span class="text-blue-400">Block</span><span class="text-white">:</span> ${transactionEvent.context.blockNumber}
+            <span class="text-blue-400">Slot</span><span class="text-white">:</span> ${transactionEvent.context.slotNumber}
+            <span class="text-blue-400">Tx Hash</span><span class="text-white">:</span> <span class="whitespace-pre-line text-wrap"
+              id="txHash" onclick="copyToClipboard(this)">${transactionEvent.context.transactionHash}</span>
+            <span class="text-blue-400">Tx Fee</span><span class="text-white">:</span> ${transactionEvent.payload.fee}
+          </pre>
+          <div class="absolute top-1 right-1 cursor-pointer" id="arrowButton">
+            ➡️ <!-- Right arrow symbol -->
+          </div>
+        </div>
+      `;
 
       // Check if the block number has increased
       if (timeDifference !== "") {
@@ -373,7 +375,6 @@
       displayExtraData(transactionEvent);
       // Scroll to the top of the page
       window.scrollTo({ top: 0, behavior: "auto" });
-
     }
 
     // Function to display extra data
@@ -381,7 +382,6 @@
       // Create a new div for the extra data and left arrow
       const extraDataDiv = document.createElement("div");
       extraDataDiv.classList.add(
-        "zoom-in",
         "mx-auto",
         "max-w-5xl",
         "px-4",
@@ -397,10 +397,10 @@
       // Logic to extract and display the extra data goes here
       const extraData = extractExtraData(transactionEvent);
       extraDataDiv.innerHTML = `
-    <pre class="mx-auto whitespace-pre-line text-white">
-      ${extraData}
-    </pre>
-  `;
+        <pre class="mx-auto whitespace-pre-line text-white">
+          ${extraData}
+        </pre>
+      `;
 
       // Append the left arrow to the extra data div
       const leftArrowDiv = document.createElement("div");
@@ -430,47 +430,78 @@
       const data = transactionEvent.payload;
 
       return `
-    <div class="zoom-in mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
-      <pre class="mx-auto whitespace-pre-line text-white">
-        <span class="text-blue-400">Block Hash:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'blockHash')" style="word-wrap: break-word;">${
-          data.blockHash
-        }</span>
-        <span class="text-blue-400">Transaction CBOR:</span> ${
-          data.transactionCbor
-            ? `<span class="text-white" style="word-wrap: break-word;">${data.transactionCbor}</span>`
-            : '<span class="text-gray-400">Not available</span>'
-        }        
-        <span class="text-blue-400">Inputs:</span>
-        ${data.inputs
-          .map(
-            (input, index) =>
-              `<div key="${index}" class="ml-2"><span class="text-white" style="word-wrap: break-word;">${input}</span></div>`
-          )
-          .join("")}
-        <span class="text-blue-400">Outputs:</span>
-        ${data.outputs
-          .map(
-            (output, index) => `
+          <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
+  <pre class="mx-auto whitespace-pre-line text-white">
+    <span class="text-blue-400">Block Hash:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'blockHash')" style="word-wrap: break-word;">${
+      data.blockHash
+    }</span>
+    <span class="text-blue-400">Transaction CBOR:</span>
+    ${
+      data.transactionCbor
+        ? `<span class="text-white" style="word-wrap: break-word;">${data.transactionCbor}</span>`
+        : '<span class="text-gray-400">Not available</span>'
+    }        
+    <span class="text-blue-400">Inputs:</span>
+    ${data.inputs
+      .map(
+        (input, index) =>
+          `<div key="${index}" class="ml-2"><span class="text-white" style="word-wrap: break-word;">${input}</span></div>`
+      )
+      .join("")}
+    <span class="text-blue-400">Outputs:</span>
+    ${data.outputs
+      .map(
+        (output, index) => `
           <div key="${index}" class="ml-2">
-            <span class="text-blue-400">Address:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'address')" style="word-wrap: break-word;">${output.address}</span>
-            <span class="text-blue-400">Amount:</span> <span class="text-white">${output.amount}</span>
+            <span class="text-blue-400">Address:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'address')" style="word-wrap: break-word;">${
+              output.address || "N/A"
+            }</span>
+            <span class="text-blue-400">Amount:</span> <span class="text-white">${
+              output.amount || "N/A"
+            }</span>
+            <span class="text-blue-400">Assets:</span>
+            ${
+              Array.isArray(output.assets)
+                ? output.assets.length > 0
+                  ? output.assets
+                      .map(
+                        (asset, assetIndex) => `
+                          <div key="${assetIndex}" class="ml-2">
+                            ${Object.entries(asset)
+                              .map(
+                                ([key, value]) => `
+                                  <span class="text-blue-400">${key}:</span> <span class="text-white">${
+                                  value || "N/A"
+                                }</span>
+                                `
+                              )
+                              .join("")}
+                          </div>`
+                      )
+                      .join("")
+                  : '<span class="text-gray-400">No assets</span>'
+                : '<span class="text-gray-400">Invalid asset data</span>'
+            }
           </div>`
-          )
-          .join("")}
-        <span class="text-blue-400">Metadata:</span> ${
-          data.metadata
-            ? `<span class="text-white" style="word-wrap: break-word;">${data.metadata}</span>`
-            : '<span class="text-gray-400">Not available</span>'
-        }
-        <span class="text-blue-400">Fee:</span> <span class="text-white">${
-          data.fee
-        }</span>
-        <span class="text-blue-400">TTL:</span> <span class="text-white">${
-          data.ttl
-        }</span>
-      </pre>
-    </div>
-  `;
+      )
+      .join("")}
+    <span class="text-blue-400">Metadata:</span>
+    ${
+      data.metadata
+        ? `<span class="text-white" style="word-wrap: break-word;">${data.metadata}</span>`
+        : '<span class="text-gray-400">Not available</span>'
+    }
+    <span class="text-blue-400">Fee:</span> <span class="text-white">${
+      data.fee
+    }</span>
+    <span class="text-blue-400">TTL:</span> <span class="text-white">${
+      data.ttl
+    }</span>
+  </pre>
+</div>
+
+
+      `;
     }
 
     // Set up WebSocket event listeners

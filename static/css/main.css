@@ -13,12 +13,12 @@ body::-webkit-scrollbar {
 
 .fade-in {
   opacity: 0;
-  animation: fadeIn 1.25s ease-in-out forwards;
+  animation: fadeIn 1s ease-in-out forwards;
 }
 
 .fade-out {
   opacity: 1;
-  animation: fadeOut 1.25s ease-in-out forwards;
+  animation: fadeOut 1s ease-in-out forwards;
 }
 
 @keyframes fadeIn {
