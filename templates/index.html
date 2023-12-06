@@ -15,7 +15,7 @@
     class="min-h-screen bg-gradient-radial from-blue-700 via-blue-900 to-black"
   >
     <div
-      id="eventCounter"
+      id="txCounter"
       class="absolute top-0 left-0 text-white ml-4 mt-4"
     ></div>
 
@@ -195,7 +195,7 @@
     let prevSlotNumber;
     let inExtraDataView = false;
     let eventsMap = new Map();
-    let eventCounter = 0;
+    let txCounter = 0;
 
     var socket = new WebSocket("ws://localhost:8080/ws");
 
@@ -236,9 +236,6 @@
         return;
       }
       const eventData = JSON.parse(event.data);
-      // Increment the event counter
-      eventCounter++;
-      updateEventCounter();
 
       // If inExtraDataView is true, don't display the event
       if (inExtraDataView) return;
@@ -253,6 +250,12 @@
         // Display the event
         displayEvent(eventData, newDiv);
 
+        if (!eventsMap.has(eventData.context.transactionHash)) {
+          // Increment the tx event counter
+          txCounter++;
+          updateTxCounter();
+        }
+
         // Update the map only if the event is not already in the map
         if (!eventsMap.has(eventData.context.transactionHash)) {
           eventsMap.set(eventData.context.transactionHash, {
@@ -263,10 +266,10 @@
       }
     }
 
-    function updateEventCounter() {
-      const counterElement = document.getElementById("eventCounter");
+    function updateTxCounter() {
+      const counterElement = document.getElementById("txCounter");
       if (counterElement) {
-        counterElement.textContent = `Events: ${eventCounter}`;
+        counterElement.textContent = `Tx Count: ${txCounter}`;
       }
     }
 
