@@ -430,80 +430,87 @@
       const data = transactionEvent.payload;
 
       return `
-          <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 bg-black p-6 rounded-lg shadow-lg relative">
   <pre class="mx-auto whitespace-pre-line text-white">
-    <span class="text-blue-400">Block Hash:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'blockHash')" style="word-wrap: break-word;">${
+    <span class="text-blue-400">Block Hash</span><span class="text-white">:</span><span class="text-yellow-600" onclick="copyToClipboard(this, 'blockHash')" style="word-wrap: break-word;">${
       data.blockHash
     }</span>
-    <span class="text-blue-400">Transaction CBOR:</span>
+    <span class="text-blue-400">Transaction CBOR</span><span class="text-white">:</span>
     ${
       data.transactionCbor
         ? `<span class="text-white" style="word-wrap: break-word;">${data.transactionCbor}</span>`
         : '<span class="text-gray-400">Not available</span>'
-    }        
-    <span class="text-blue-400">Inputs:</span>
+    }
+    <span class="text-blue-400">Inputs</span><span class="text-white">:</span>
     ${data.inputs
       .map(
         (input, index) =>
           `<div key="${index}" class="ml-2"><span class="text-white" style="word-wrap: break-word;">${input}</span></div>`
       )
       .join("")}
-    <span class="text-blue-400">Outputs:</span>
-    ${data.outputs
-      .map(
-        (output, index) => `
-          <div key="${index}" class="ml-2">
-            <span class="text-blue-400">Address:</span> <span class="text-yellow-600" onclick="copyToClipboard(this, 'address')" style="word-wrap: break-word;">${
-              output.address || "N/A"
-            }</span>
-            <span class="text-blue-400">Amount:</span> <span class="text-white">${
-              output.amount || "N/A"
-            }</span>
-            <span class="text-blue-400">Assets:</span>
-            ${
-              Array.isArray(output.assets)
-                ? output.assets.length > 0
-                  ? output.assets
-                      .map(
-                        (asset, assetIndex) => `
-                          <div key="${assetIndex}" class="ml-2">
-                            ${Object.entries(asset)
-                              .map(
-                                ([key, value]) => `
-                                  <span class="text-blue-400">${key}:</span> <span class="text-white">${
-                                  value || "N/A"
-                                }</span>
-                                `
-                              )
-                              .join("")}
-                          </div>`
-                      )
-                      .join("")
-                  : '<span class="text-gray-400">No assets</span>'
-                : '<span class="text-gray-400">Invalid asset data</span>'
-            }
-          </div>`
-      )
-      .join("")}
-    <span class="text-blue-400">Metadata:</span>
+      <span class="text-blue-400">Outputs</span><span class="text-white">:</span>${data.outputs
+        .map(
+          (output, index) => `<div key="${index}" class="ml-2">
+        <span class="text-blue-400">Address</span><span class="text-white">:</span><span class="text-yellow-600" onclick="copyToClipboard(this, 'address')" style="word-wrap: break-word;">${
+          output.address || "N/A"
+        }</span>
+        <span class="text-blue-400">Amount</span><span class="text-white">:</span> 
+        <span class="text-white">${
+          (output.amount / 1000000).toLocaleString() || "N/A"
+        }</span>
+        <span class="text-blue-400">Assets</span><span class="text-white">:</span>
+        ${
+          Array.isArray(output.assets) && output.assets.length > 0
+            ? `<div class="ml-2">
+                <button class="text-blue-400 underline" onclick="toggleAccordion(${index})">Toggle Assets</button>
+                <div id="accordion-${index}" class="hidden">
+                  ${output.assets
+                    .map(
+                      (
+                        asset,
+                        assetIndex
+                      ) => `<div key="${assetIndex}" class="ml-2">
+                          ${Object.entries(asset)
+                            .map(
+                              ([key, value]) => `
+                              <span class="text-blue-400">${key}</span><span class="text-white">:</span> <span class="text-white">${
+                                value || "N/A"
+                              }</span>`
+                            )
+                            .join("")}
+                        </div>`
+                    )
+                    .join("")}
+                </div>
+              </div>`
+            : "" /* If no valid asset data, don't display anything */
+        }
+      </div>`
+        )
+        .join("")}
+
+    <span class="text-blue-400">Metadata</span><span class="text-white">:</span>
     ${
       data.metadata
         ? `<span class="text-white" style="word-wrap: break-word;">${data.metadata}</span>`
         : '<span class="text-gray-400">Not available</span>'
     }
-    <span class="text-blue-400">Fee:</span> <span class="text-white">${
-      data.fee
-    }</span>
-    <span class="text-blue-400">TTL:</span> <span class="text-white">${
+    <span class="text-blue-400">Fee</span><span class="text-white">:</span><span class="text-white">${(
+      data.fee / 1000000
+    ).toLocaleString()}</span>
+    <span class="text-blue-400">TTL</span><span class="text-white">:</span><span class="text-white">${
       data.ttl
     }</span>
   </pre>
 </div>
 
-
       `;
     }
 
+    function toggleAccordion(index) {
+      const accordion = document.getElementById(`accordion-${index}`);
+      accordion.classList.toggle("hidden");
+    }
     // Set up WebSocket event listeners
     socket.addEventListener("open", handleSocketOpen);
     socket.addEventListener("error", handleSocketError);
