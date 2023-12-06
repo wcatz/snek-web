@@ -493,22 +493,38 @@
         .join("")}
 
     <span class="text-blue-400">Metadata</span><span class="text-white">:</span>
-    ${
-      data.metadata
-        ? `<span class="text-white" style="word-wrap: break-word;">${data.metadata}</span>`
-        : '<span class="text-gray-400">Not available</span>'
-    }
-    <span class="text-blue-400">Fee</span><span class="text-white">:</span><span class="text-white">${(
-      data.fee / 1000000
-    ).toLocaleString()}</span>
-    <span class="text-blue-400">TTL</span><span class="text-white">:</span><span class="text-white">${
-      data.ttl
-    }</span>
+${data.metadata
+  ? `<div class="ml-2">
+      ${Object.entries(data.metadata)
+        .map(([key, value]) => renderMetadata(key, value))
+        .join("")}
+    </div>`
+  : '<span class="text-gray-400">Not available</span>'}
+<span class="text-blue-400">Fee:</span> <span class="text-white">${(data.fee / 1000000).toLocaleString() || "N/A"}</span>
+<span class="text-blue-400">TTL:</span> <span class="text-white">${data.ttl}</span>
   </pre>
 </div>
 
       `;
     }
+
+    function renderMetadata(key, value) {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return `
+      <span class="text-blue-400">${key}:</span>
+      <div class="ml-2">
+        ${Object.entries(value)
+          .map(([nestedKey, nestedValue]) => renderMetadata(nestedKey, nestedValue))
+          .join("")}
+      </div>
+    `;
+  } else {
+    return `
+      <span class="text-blue-400">${key}:</span>
+      <span class="text-white">${value}</span>
+    `;
+  }
+}
 
     function toggleAccordion(index) {
       const accordion = document.getElementById(`accordion-${index}`);
